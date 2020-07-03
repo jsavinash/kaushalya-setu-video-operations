@@ -4,6 +4,10 @@ import RecordButton from './record-button'
 import StopButton from './stop-button'
 import Timer from './timer'
 import Countdown from './countdown'
+import retryIcon from '../svg/retry.svg'
+import cameraIcon from '../svg/camera.svg'
+import addFileIcon from '../svg/add.svg'
+import replaceFileIcon from '../svg/replace.svg'
 
 const Actions = ({
   isVideoInputSupported,
@@ -46,13 +50,16 @@ const Actions = ({
 
     if (isReplayingVideo) {
       return (
-        <button
-          className='button'
-          onClick={onStopReplaying}
+        <img
+          src={useVideoInput ? replaceFileIcon : retryIcon}
           data-qa='start-replaying'
-        >
-          Use another video
-        </button>
+          alt='retry'
+          style={{
+            height: '64px',
+            width: '64px'
+          }}
+          onClick={onStopReplaying}
+        />
       )
     }
 
@@ -68,13 +75,16 @@ const Actions = ({
 
     if (useVideoInput) {
       return (
-        <button
-          className='button'
-          onClick={onOpenVideoInput}
+        <img
+          src={addFileIcon}
           data-qa='open-input'
-        >
-          Upload a video
-        </button>
+          alt='add file'
+          style={{
+            height: '64px',
+            width: '64px'
+          }}
+          onClick={onOpenVideoInput}
+        />
       )
     }
 
@@ -87,13 +97,16 @@ const Actions = ({
         Record a video
       </button>
     ) : (
-      <button
-        className='button'
-        onClick={onTurnOnCamera}
+      <img
+        src={cameraIcon}
         data-qa='turn-on-camera'
-      >
-        Turn my camera ON
-      </button>
+        alt='retry'
+        style={{
+          height: '64px',
+          width: '64px'
+        }}
+        onClick={onTurnOnCamera}
+      />
     )
   }
 
@@ -101,7 +114,9 @@ const Actions = ({
     <div>
       {isRecording && <Timer timeLimit={timeLimit} />}
       {isRunningCountdown && <Countdown countdownTime={countdownTime} />}
-      <div className='action-wrapper'>{renderContent()}</div>
+      <div className={showReplayControls ? 'action-wrapper' : 'action-wrapper'}>
+        {renderContent()}
+      </div>
     </div>
   )
 }
