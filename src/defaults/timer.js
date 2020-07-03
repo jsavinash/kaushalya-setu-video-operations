@@ -1,25 +1,5 @@
 import React, { Component } from 'react'
 import PropTypes from 'prop-types'
-import styled from 'styled-components'
-
-const Text = styled.div`
-  position: absolute;
-  top: 50px;
-  right: 50px;
-  font-family: Menlo, monospace;
-  font-size: 28px;
-  text-shadow: 1px 2px rgba(0, 0, 0, 0.5);
-`
-
-const RecIcon = styled.div`
-  width: 16px;
-  height: 16px;
-  background: #e55226;
-  border-radius: 50%;
-  float: left;
-  margin: 2px 8px;
-  margin-left: 0;
-`
 
 class Timer extends Component {
   static propTypes = {
@@ -73,10 +53,10 @@ class Timer extends Component {
   render () {
     const defaultText = this.props.defaultText || '0:00'
     return (
-      <Text {...this.props}>
-        <RecIcon />
+      <div className='timer'>
+        <div className='rect-icon' />
         {this.state.human || defaultText}
-      </Text>
+      </div>
     )
   }
 }

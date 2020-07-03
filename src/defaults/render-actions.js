@@ -1,23 +1,9 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import styled from 'styled-components'
-import Button from './button'
 import RecordButton from './record-button'
 import StopButton from './stop-button'
 import Timer from './timer'
 import Countdown from './countdown'
-
-const ActionsWrapper = styled.div`
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-top: 20px;
-  padding-bottom: 80px;
-`
 
 const Actions = ({
   isVideoInputSupported,
@@ -60,9 +46,13 @@ const Actions = ({
 
     if (isReplayingVideo) {
       return (
-        <Button onClick={onStopReplaying} data-qa='start-replaying'>
+        <button
+          className='button'
+          onClick={onStopReplaying}
+          data-qa='start-replaying'
+        >
           Use another video
-        </Button>
+        </button>
       )
     }
 
@@ -78,20 +68,32 @@ const Actions = ({
 
     if (useVideoInput) {
       return (
-        <Button onClick={onOpenVideoInput} data-qa='open-input'>
+        <button
+          className='button'
+          onClick={onOpenVideoInput}
+          data-qa='open-input'
+        >
           Upload a video
-        </Button>
+        </button>
       )
     }
 
     return shouldUseVideoInput ? (
-      <Button onClick={onOpenVideoInput} data-qa='open-input'>
+      <button
+        className='button'
+        onClick={onOpenVideoInput}
+        data-qa='open-input'
+      >
         Record a video
-      </Button>
+      </button>
     ) : (
-      <Button onClick={onTurnOnCamera} data-qa='turn-on-camera'>
+      <button
+        className='button'
+        onClick={onTurnOnCamera}
+        data-qa='turn-on-camera'
+      >
         Turn my camera ON
-      </Button>
+      </button>
     )
   }
 
@@ -99,7 +101,7 @@ const Actions = ({
     <div>
       {isRecording && <Timer timeLimit={timeLimit} />}
       {isRunningCountdown && <Countdown countdownTime={countdownTime} />}
-      <ActionsWrapper>{renderContent()}</ActionsWrapper>
+      <div className='action-wrapper'>{renderContent()}</div>
     </div>
   )
 }

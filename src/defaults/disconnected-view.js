@@ -1,12 +1,5 @@
 import React from 'react'
 import SVGInline from 'react-svg-inline'
-import styled from 'styled-components'
-
-const SVGWrapper = styled.div`
-  max-height: 100%;
-  max-width: 100%;
-  margin-bottom: 140px;
-`
 
 const icon = `
 <svg width="210px" height="150px" viewBox="0 0 210 150" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -19,9 +12,9 @@ const icon = `
 `
 
 const DisconnectedView = () => (
-  <SVGWrapper>
+  <div className='svg-wrapper'>
     <SVGInline svg={icon} />
-  </SVGWrapper>
+  </div>
 )
 
 export default DisconnectedView

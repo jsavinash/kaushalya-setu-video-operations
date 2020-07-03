@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 import PropTypes from 'prop-types'
-import styled, { css } from 'styled-components'
+import './css/App.css'
 
 import UnsupportedView from './defaults/unsupported-view'
 import ErrorView from './defaults/error-view'
@@ -26,51 +26,6 @@ const CONSTRAINTS = {
   audio: true,
   video: true
 }
-
-const Wrapper = styled.div`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  min-height: 300px;
-  background-color: #000;
-  color: white;
-  box-sizing: border-box;
-  * {
-    box-sizing: inherit;
-  }
-`
-
-const CameraView = styled.div`
-  width: 100%;
-  height: 100%;
-`
-
-const Video = styled.video`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  min-height: 100%;
-  min-width: 100%;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  ${props =>
-    props.isFlipped &&
-    css`
-      transform: translate(-50%, -50%) scaleX(-1);
-    `};
-  ${props =>
-    props.onClick &&
-    css`
-      cursor: pointer;
-    `};
-`
 
 export default class VideoRecorder extends Component {
   static propTypes = {
@@ -648,9 +603,10 @@ export default class VideoRecorder extends Component {
 
     if (isReplayingVideo) {
       return (
-        <CameraView key='replay'>
-          <Video
+        <div className='camera-view' key='replay'>
+          <video
             ref={el => (this.replayVideo = el)}
+            className='video'
             src={this.state.videoUrl}
             loop
             muted={isReplayVideoMuted}
@@ -661,7 +617,7 @@ export default class VideoRecorder extends Component {
             onDurationChange={this.handleDurationChange}
           />
           {videoInput}
-        </CameraView>
+        </div>
       )
     }
 
@@ -679,14 +635,14 @@ export default class VideoRecorder extends Component {
 
     if (isCameraOn) {
       return (
-        <CameraView key='camera'>
-          <Video
-            isFlipped={this.props.isFlipped}
+        <div className='camera-view' key='camera'>
+          <video
+            className={this.props.isFlipped ? 'flip' : null}
             ref={el => (this.cameraVideo = el)}
             autoPlay
             muted
           />
-        </CameraView>
+        </div>
       )
     }
 
@@ -721,7 +677,7 @@ export default class VideoRecorder extends Component {
     } = this.props
 
     return (
-      <Wrapper>
+      <div className='video-wrapper'>
         {this.renderCameraView()}
         {renderActions({
           isVideoInputSupported,
@@ -749,7 +705,7 @@ export default class VideoRecorder extends Component {
           onResumeRecording: this.handleResumeRecording,
           onStopReplaying: this.handleStopReplaying
         })}
-      </Wrapper>
+      </div>
     )
   }
 }
