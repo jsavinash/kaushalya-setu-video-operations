@@ -114,9 +114,7 @@ const Actions = ({
     <div>
       {isRecording && <Timer timeLimit={timeLimit} />}
       {isRunningCountdown && <Countdown countdownTime={countdownTime} />}
-      <div className={showReplayControls ? 'action-wrapper' : 'action-wrapper'}>
-        {renderContent()}
-      </div>
+      <div className='action-wrapper'>{renderContent()}</div>
     </div>
   )
 }

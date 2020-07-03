@@ -113,6 +113,12 @@
     color: #dc6547;
     padding: 0 5px; }
 
+.close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 1; }
+
 .video-wrapper {
   position: relative;
   display: flex;
