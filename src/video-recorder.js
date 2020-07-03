@@ -1,6 +1,6 @@
+import './css/App.css'
 import React, { Component } from 'react'
 import PropTypes from 'prop-types'
-import './css/App.css'
 
 import UnsupportedView from './defaults/unsupported-view'
 import ErrorView from './defaults/error-view'
@@ -637,7 +637,7 @@ export default class VideoRecorder extends Component {
       return (
         <div className='camera-view' key='camera'>
           <video
-            className={this.props.isFlipped ? 'flip' : null}
+            className={this.props.isFlipped ? 'video flipped' : 'video'}
             ref={el => (this.cameraVideo = el)}
             autoPlay
             muted

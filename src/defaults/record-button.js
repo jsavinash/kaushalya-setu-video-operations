@@ -1,6 +1,7 @@
 import React from 'react'
+import PropTypes from 'prop-types'
 
-export default props => (
+const RecordButton = props => (
   <div className='rect-wrapper'>
     <div className='instructions'>
       <div>PRESS </div>
@@ -8,8 +9,20 @@ export default props => (
       WHEN READY
     </div>
 
-    <div className='border'>
-      <button className='record-button' />
+    <div className='button-border'>
+      <button className='record-button' onClick={props.onClick} />
     </div>
   </div>
 )
+
+// prop types
+RecordButton.propTypes = {
+  onClick: PropTypes.func
+}
+
+// default props
+RecordButton.defaultProps = {
+  onClick: () => {}
+}
+
+export default RecordButton
