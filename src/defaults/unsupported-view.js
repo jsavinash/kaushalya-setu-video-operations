@@ -1,7 +1,21 @@
-import React from 'react'
+import React from "react";
+import PropTypes from "prop-types";
 
-const UnsupportedView = () => (
-  <div>This browser is uncapable of recording video</div>
-)
+const UnsupportedView = (props) => (
+  <div>
+    {props.locales.browserUncapableLabel ||
+      "This browser is uncapable of recording video"}
+  </div>
+);
 
-export default UnsupportedView
+// prop types
+UnsupportedView.propTypes = {
+  locales: PropTypes.object,
+};
+
+// default props
+UnsupportedView.defaultProps = {
+  locales: {},
+};
+
+export default UnsupportedView;

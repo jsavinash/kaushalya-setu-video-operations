@@ -9,7 +9,7 @@ const DisconnectedView = () => (
       alt='camera disconnected'
       style={{
         width: '210px',
-        height: '150px'
+        height: '100px'
       }}
     />
   </div>
