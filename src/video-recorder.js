@@ -14,7 +14,6 @@ import {
   ReactVideoRecorderDataAvailableTimeoutError,
   ReactVideoRecorderMediaRecorderUnavailableError,
 } from "./custom-errors";
-import closeIcon from "./svg/close.svg";
 
 const MIME_TYPES = [
   'video/webm;codecs="vp8,opus"',
@@ -116,8 +115,7 @@ export default class VideoRecorder extends Component {
       !!window.MediaRecorder &&
       !!navigator.mediaDevices;
 
-    const isVideoInputSupported =
-      document.createElement("input").capture !== undefined;
+    const isVideoInputSupported = true;
 
     if (isInlineRecordingSupported) {
       this.mediaSource = new window.MediaSource();
@@ -228,10 +226,15 @@ export default class VideoRecorder extends Component {
     // but this makes sure the start recording button
     // gives the stream a couple miliseconds to be ready
     setTimeout(() => {
-      this.setState({
-        isConnecting: false,
-        streamIsReady: true,
-      });
+      this.setState(
+        {
+          isConnecting: false,
+          streamIsReady: true,
+        },
+        () => {
+          this.handleStartRecording();
+        }
+      );
     }, 200);
   };
 
@@ -663,26 +666,6 @@ export default class VideoRecorder extends Component {
     return renderDisconnectedView();
   }
 
-  handleCloseEvent = () => {
-    if (this.props.onVideoManagerClose) {
-      this.props.onVideoManagerClose();
-    }
-    this.turnOffCamera();
-    this.setState({
-      isRecording: false,
-      isCameraOn: false,
-      isConnecting: false,
-      isReplayingVideo: false,
-      isReplayVideoMuted: true,
-      thereWasAnError: false,
-      error: null,
-      streamIsReady: false,
-      isInlineRecordingSupported: true,
-      isVideoInputSupported: null,
-      stream: undefined,
-    });
-  };
-
   render() {
     const {
       isVideoInputSupported,
@@ -709,18 +692,6 @@ export default class VideoRecorder extends Component {
 
     return (
       <div className="video-wrapper">
-        <div className="close">
-          <img
-            src={closeIcon}
-            data-qa="close"
-            alt="retry"
-            style={{
-              height: "20px",
-              width: "20px",
-            }}
-            onClick={this.handleCloseEvent}
-          />
-        </div>
         {this.renderCameraView()}
         {renderActions({
           locales,
