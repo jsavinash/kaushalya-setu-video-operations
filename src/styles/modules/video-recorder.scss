@@ -2,6 +2,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  transition: height 1s ease-in-out;
   align-items: center;
   justify-content: center;
   width: 100%;
@@ -14,6 +15,13 @@
   * {
     box-sizing: inherit;
   }
+}
+
+.full-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1;
 }
 
 .camera-view {
@@ -36,4 +44,3 @@
     transform: translate(-50%, -50%) scaleX(-1);
   }
 }
-

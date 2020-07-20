@@ -39,9 +39,7 @@ const getVideoInfo = videoBlob =>
 
     const timeout = setTimeout(handleTimeout, 1000)
 
-    const handleLoadedData = () => {
-      const duration = videoTag.duration * 1000
-
+    const handleVideoTag = duration => {
       captureThumb(videoTag)
         .then(thumbnail => {
           videoTag.pause()
@@ -59,6 +57,21 @@ const getVideoInfo = videoBlob =>
             reject(err)
           }
         })
+    }
+
+    const handleLoadedData = () => {
+      let duration = videoTag.duration * 1000
+      if (videoTag.duration === Infinity) {
+        videoTag.currentTime = Number.MAX_SAFE_INTEGER
+        videoTag.ontimeupdate = () => {
+          videoTag.ontimeupdate = null
+          duration = videoTag.duration * 1000
+          videoTag.currentTime = 0
+          handleVideoTag(duration)
+        }
+      } else {
+        handleVideoTag(duration)
+      }
     }
 
     videoTag.addEventListener('loadeddata', handleLoadedData)
