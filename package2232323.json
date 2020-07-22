@@ -30,7 +30,7 @@
   },
   "dependencies": {},
   "devDependencies": {},
-  "version": "0.0.30",
+  "version": "0.0.32",
   "repository": {
     "type": "git",
     "url": "https://github.com/jsavinash/react-video-recorder.git"

@@ -1,26 +1,24 @@
-import React from "react";
-import PropTypes from "prop-types";
+import React from 'react'
+import PropTypes from 'prop-types'
 
-const ErrorView = (props) => (
-  <div>
+const ErrorView = props => (
+  <div className='error-message'>
     {props.locales.recordFailLabel ||
-      "Oh snap! Your browser failed to record your video."}
+      'Oh snap! Your browser failed to record your video.'}
     <br />
     <br />
-    {props.locales.tryRecordingAgainLabel ||
-      "Please restart it and try again"}{" "}
-    👍
+    {props.locales.tryRecordingAgainLabel || 'Please restart it and try again'}
   </div>
-);
+)
 
 // prop types
 ErrorView.propTypes = {
-  locales: PropTypes.object,
-};
+  locales: PropTypes.object
+}
 
 // default props
 ErrorView.defaultProps = {
-  locales: {},
-};
+  locales: {}
+}
 
-export default ErrorView;
+export default ErrorView

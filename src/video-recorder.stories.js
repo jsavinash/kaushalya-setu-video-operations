@@ -71,6 +71,7 @@ stories.addParameters({
 
 stories.add('with default config', () => (
   <VideoRecorder
+    showCloseButton
     isFullScreen={false}
     locales={locales}
     mimeType={text('mimeType')}

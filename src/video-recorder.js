@@ -14,6 +14,7 @@ import {
   ReactVideoRecorderDataAvailableTimeoutError,
   ReactVideoRecorderMediaRecorderUnavailableError
 } from './custom-errors'
+import closeIcon from './svg/close.svg'
 
 const MIME_TYPES = [
   'video/webm;codecs="vp8,opus"',
@@ -29,6 +30,8 @@ const CONSTRAINTS = {
 
 export default class VideoRecorder extends Component {
   static propTypes = {
+    /** full screen flag */
+    showCloseButton: PropTypes.bool,
     /** full screen flag */
     isFullScreen: PropTypes.bool,
     /** Text translation */
@@ -73,17 +76,19 @@ export default class VideoRecorder extends Component {
     onRecordingComplete: PropTypes.func,
     onOpenVideoInput: PropTypes.func,
     onStopReplaying: PropTypes.func,
+    onVideoManagerClose: PropTypes.func,
     onError: PropTypes.func
   }
 
   static defaultProps = {
+    showCloseButton: false,
     isFullScreen: false,
     locales: {},
-    renderUnsupportedView: props => <UnsupportedView locales={props || {}} />,
-    renderErrorView: props => <ErrorView locales={props || {}} />,
+    renderUnsupportedView: props => <UnsupportedView locales={props} />,
+    renderErrorView: props => <ErrorView locales={props} />,
     renderVideoInputView: ({ videoInput }) => <>{videoInput}</>,
     renderDisconnectedView: () => <DisconnectedView />,
-    renderLoadingView: props => <LoadingView locales={props || {}} />,
+    renderLoadingView: props => <LoadingView locales={props} />,
     renderActions,
     isFlipped: true,
     countdownTime: 3000,
@@ -592,7 +597,6 @@ export default class VideoRecorder extends Component {
       isReplayingVideo,
       isInlineRecordingSupported,
       thereWasAnError,
-      error,
       isCameraOn,
       isConnecting,
       isReplayVideoMuted
@@ -644,7 +648,7 @@ export default class VideoRecorder extends Component {
     }
 
     if (thereWasAnError) {
-      return renderErrorView({ error, locales })
+      return renderErrorView(locales)
     }
 
     if (isCameraOn) {
@@ -669,6 +673,13 @@ export default class VideoRecorder extends Component {
     return renderDisconnectedView()
   }
 
+  handleCloseEvent = () => {
+    if (this.props.onVideoManagerClose) {
+      this.props.onVideoManagerClose()
+    }
+    this.turnOffCamera()
+  }
+
   render () {
     const {
       isVideoInputSupported,
@@ -684,6 +695,7 @@ export default class VideoRecorder extends Component {
     } = this.state
 
     const {
+      showCloseButton,
       isFullScreen,
       locales,
       countdownTime,
@@ -695,6 +707,20 @@ export default class VideoRecorder extends Component {
     } = this.props
     return (
       <div className={`video-wrapper ${isFullScreen ? 'full-screen' : ''}`}>
+        {showCloseButton && (
+          <div className='close'>
+            <img
+              src={closeIcon}
+              data-qa='close'
+              alt='retry'
+              style={{
+                height: '40px',
+                width: '40px'
+              }}
+              onClick={this.handleCloseEvent}
+            />
+          </div>
+        )}
         {this.renderCameraView()}
         {renderActions({
           locales,
