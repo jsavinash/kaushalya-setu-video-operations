@@ -1,0 +1,39 @@
+{
+  "name": "sass-react-video-recorder",
+  "main": "lib",
+  "files": [
+    "lib",
+    "README.md"
+  ],
+  "scripts": {
+    "test": ""
+  },
+  "husky": {
+    "hooks": {
+    }
+  },
+  "lint-staged": {
+    "**/*.js": [
+      "prettier-standard",
+      "eslint --fix",
+      "git add"
+    ],
+    "**/*.md": [
+      "prettier-standard",
+      "git add"
+    ]
+  },
+  "peerDependencies": {
+    "prop-types": "*",
+    "react": "*",
+    "react-dom": "*"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "version": "0.0.30",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jsavinash/react-video-recorder.git"
+  },
+  "license": "MIT"
+}
