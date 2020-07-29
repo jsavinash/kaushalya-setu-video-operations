@@ -86,7 +86,7 @@ stories.add('with default config', () => (
       height: 300
     }}
     showCloseButton
-    isFullScreen={false}
+    isFullScreen={true}
     locales={locales}
     mimeType={text('mimeType')}
     countdownTime={number('countdownTime', 3 * 1000)}

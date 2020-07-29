@@ -752,28 +752,22 @@ export default class VideoRecorder extends Component {
     if (!state.streamIsReady && this.props.onGetScreenshot) {
       this.props.onGetScreenshot(null);
     }
-
     const canvas = this.getCanvas();
-    this.setState({
-      capturedData:
-        canvas &&
-        canvas.toDataURL(
-          takePicture.screenshotFormat,
-          takePicture.screenshotQuality
-        ),
-    });
-    const blob = this.blobConverter(
+    const capturedData =
       canvas &&
-        canvas.toDataURL(
-          takePicture.screenshotFormat,
-          takePicture.screenshotQuality
-        )
-    );
+      canvas.toDataURL(
+        takePicture.screenshotFormat,
+        takePicture.screenshotQuality
+      );
+    this.setState({
+      capturedData,
+    });
+    const blob = this.blobConverter(capturedData);
     if (this.props.onGetScreenshot) {
       this.setState({
         isPictureCapture: true,
       });
-      this.props.onGetScreenshot(blob);
+      this.props.onGetScreenshot({ blob, capturedData });
     }
   };
 
@@ -887,11 +881,13 @@ export default class VideoRecorder extends Component {
       isRecordingDoneButton ||
       showAction ||
       (isScreenCapture && isPictureCapture);
+
     return (
       <div className={`video-wrapper ${isFullScreen ? "full-screen" : ""}`}>
         {isVideoCapture && (
           <VideoCaptureAction
             isRecording={isRecordingDoneButton || isScreenCapture}
+            isScreenCapture={isScreenCapture}
             onVideoPlayerClose={this.handleVideoPlayerClose}
             onVideoPlayerDone={this.handleVideoPlayerDone}
           />
