@@ -5,3 +5,4 @@ import VideoRecorder from './video-recorder'
 it('renders without crashing', () => {
   shallow(<VideoRecorder />)
 })
+

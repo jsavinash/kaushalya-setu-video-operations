@@ -96,8 +96,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-top: 20px;
-  margin-bottom: 60px; }
+  margin-bottom: 24%; }
+
+.action-full {
+  margin-bottom: 36%; }
 
 .rect-wrapper {
   display: flex;
@@ -135,8 +137,8 @@
 .cancel-btn {
   width: 28px;
   height: 28px;
-  margin-top: 7px;
-  margin-left: 7px; }
+  margin-top: 16%;
+  margin-left: 3%; }
 
 .save-button-wrapper {
   z-index: 1;
@@ -151,8 +153,8 @@
 .save-btn {
   width: 30px;
   height: 30px;
-  margin-top: 6px;
-  margin-left: 6px; }
+  margin-top: 17%;
+  margin-left: 2%; }
 
 .top-cancel-button-wrapper {
   z-index: 1;
@@ -168,6 +170,9 @@
   width: 28px;
   height: 28px;
   margin-top: 7px; }
+
+.btn-full {
+  bottom: 12%; }
 
 .video-wrapper {
   position: relative;

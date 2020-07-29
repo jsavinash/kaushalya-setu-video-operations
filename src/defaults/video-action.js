@@ -1,49 +1,50 @@
-import React from 'react'
-import PropTypes from 'prop-types'
-import closeIcon from '../svg/close.svg'
-import correctIcon from '../svg/correct.svg'
+import React from "react";
+import PropTypes from "prop-types";
+import closeIcon from "../svg/close.svg";
+import correctIcon from "../svg/correct.svg";
 
-const VideoCaptureAction = props => {
-  const { isRecording, onVideoPlayerClose, onVideoPlayerDone } = props
+const VideoCaptureAction = (props) => {
+  const { isRecording, onVideoPlayerClose, onVideoPlayerDone } = props;
+  const onVideoRecorded = isRecording ? "btn-full" : "";
 
   return (
     <>
-      <div className='cancel-button-wrapper'>
+      <div className={`cancel-button-wrapper ${onVideoRecorded}`}>
         <img
           src={closeIcon}
-          data-qa='btn'
-          className='cancel-btn'
-          alt='cancel'
+          data-qa="btn"
+          className="cancel-btn"
+          alt="cancel"
           onClick={onVideoPlayerClose}
         />
       </div>
       {isRecording && (
-        <div className='save-button-wrapper'>
+        <div className={`save-button-wrapper ${onVideoRecorded}`}>
           <img
             src={correctIcon}
-            className='save-btn'
-            data-qa='btn'
-            alt='correct'
+            className="save-btn"
+            data-qa="btn"
+            alt="correct"
             onClick={onVideoPlayerDone}
           />
         </div>
       )}
     </>
-  )
-}
+  );
+};
 
 // prop types
 VideoCaptureAction.propTypes = {
   isRecording: PropTypes.bool,
   onVideoPlayerClose: PropTypes.func,
-  onVideoPlayerDone: PropTypes.func
-}
+  onVideoPlayerDone: PropTypes.func,
+};
 
 // default props
 VideoCaptureAction.defaultProps = {
   isRecording: false,
   onVideoPlayerClose: () => ({}),
-  onVideoPlayerDone: () => ({})
-}
+  onVideoPlayerDone: () => ({}),
+};
 
-export default VideoCaptureAction
+export default VideoCaptureAction;

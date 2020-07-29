@@ -74,6 +74,7 @@ stories.addParameters({
 
 stories.add('with default config', () => (
   <VideoRecorder
+  isOnInitially
     takePicture={{
       clickPicture: true,
       screenshotFormat: 'image/jpeg',

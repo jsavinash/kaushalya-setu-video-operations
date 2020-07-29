@@ -1,34 +1,34 @@
-import './css/App.css'
-import React, { Component } from 'react'
-import PropTypes from 'prop-types'
+import "./css/App.css";
+import React, { Component } from "react";
+import PropTypes from "prop-types";
 
-import UnsupportedView from './defaults/unsupported-view'
-import ErrorView from './defaults/error-view'
-import DisconnectedView from './defaults/disconnected-view'
-import LoadingView from './defaults/loading-view'
-import renderActions from './defaults/render-actions'
-import VideoCaptureAction from './defaults/video-action'
-import getVideoInfo, { captureThumb } from './get-video-info'
+import UnsupportedView from "./defaults/unsupported-view";
+import ErrorView from "./defaults/error-view";
+import DisconnectedView from "./defaults/disconnected-view";
+import LoadingView from "./defaults/loading-view";
+import renderActions from "./defaults/render-actions";
+import VideoCaptureAction from "./defaults/video-action";
+import getVideoInfo, { captureThumb } from "./get-video-info";
 import {
   ReactVideoRecorderDataIssueError,
   ReactVideoRecorderRecordedBlobsUnavailableError,
   ReactVideoRecorderDataAvailableTimeoutError,
-  ReactVideoRecorderMediaRecorderUnavailableError
-} from './custom-errors'
+  ReactVideoRecorderMediaRecorderUnavailableError,
+} from "./custom-errors";
 
 const MIME_TYPES = [
   'video/webm;codecs="vp8,opus"',
-  'video/webm;codecs=h264',
-  'video/webm;codecs=vp9',
-  'video/webm'
-]
+  "video/webm;codecs=h264",
+  "video/webm;codecs=vp9",
+  "video/webm",
+];
 
-const PICTURE_TYPES = ['image/webp', 'image/png', 'image/jpeg']
+const PICTURE_TYPES = ["image/webp", "image/png", "image/jpeg"];
 
 const CONSTRAINTS = {
   audio: true,
-  video: true
-}
+  video: true,
+};
 
 export default class VideoRecorder extends Component {
   static propTypes = {
@@ -63,12 +63,12 @@ export default class VideoRecorder extends Component {
       mirrored: PropTypes.bool,
       imageSmoothing: PropTypes.bool,
       width: PropTypes.number,
-      height: PropTypes.number
+      height: PropTypes.number,
     }),
     /** Use this if you want to customize the constraints passed to getUserMedia() */
     constraints: PropTypes.shape({
       audio: PropTypes.any,
-      video: PropTypes.any
+      video: PropTypes.any,
     }),
     chunkSize: PropTypes.number,
     dataAvailableTimeout: PropTypes.number,
@@ -94,32 +94,33 @@ export default class VideoRecorder extends Component {
     onStopReplaying: PropTypes.func,
     onVideoPlayerClose: PropTypes.func,
     onVideoPlayerDone: PropTypes.func,
-    onError: PropTypes.func
-  }
+    onError: PropTypes.func,
+  };
 
   static defaultProps = {
     takePicture: null,
     showCloseButton: false,
     isFullScreen: false,
     locales: {},
-    renderUnsupportedView: props => <UnsupportedView {...props} />,
-    renderErrorView: props => <ErrorView {...props} />,
+    renderUnsupportedView: (props) => <UnsupportedView {...props} />,
+    renderErrorView: (props) => <ErrorView {...props} />,
     renderVideoInputView: ({ videoInput }) => <>{videoInput}</>,
     renderDisconnectedView: () => <DisconnectedView />,
-    renderLoadingView: props => <LoadingView {...props} />,
+    renderLoadingView: (props) => <LoadingView {...props} />,
     renderActions,
     isFlipped: true,
     countdownTime: 3000,
     constraints: CONSTRAINTS,
     chunkSize: 250,
-    dataAvailableTimeout: 500
-  }
+    dataAvailableTimeout: 500,
+  };
 
-  videoInput = React.createRef()
+  videoInput = React.createRef();
 
-  timeSinceInactivity = 0
+  timeSinceInactivity = 0;
 
   state = {
+    isScreenCapture: false,
     isRecording: false,
     isCameraOn: false,
     isConnecting: false,
@@ -131,121 +132,126 @@ export default class VideoRecorder extends Component {
     isInlineRecordingSupported: null,
     isVideoInputSupported: null,
     stream: undefined,
-    isRecordingDone: false
-  }
+    isRecordingDone: false,
+    isPictureCapture: false,
+    capturedData: "",
+  };
 
-  componentDidMount () {
+  componentDidMount() {
     const isInlineRecordingSupported =
-      !!window.MediaSource && !!window.MediaRecorder && !!navigator.mediaDevices
+      !!window.MediaSource &&
+      !!window.MediaRecorder &&
+      !!navigator.mediaDevices;
 
     const isVideoInputSupported =
-      document.createElement('input').capture !== undefined
+      document.createElement("input").capture !== undefined;
 
     if (isInlineRecordingSupported) {
-      this.mediaSource = new window.MediaSource()
+      this.mediaSource = new window.MediaSource();
     }
 
     this.setState(
       {
         isInlineRecordingSupported,
-        isVideoInputSupported
+        isVideoInputSupported,
       },
       () => {
         if (this.props.useVideoInput && this.props.isOnInitially) {
-          this.handleOpenVideoInput()
+          this.handleOpenVideoInput();
+          console.log("render 1");
         } else if (
           this.state.isInlineRecordingSupported &&
           this.props.isOnInitially
         ) {
-          this.turnOnCamera()
+          console.log("render 2");
+          this.turnOnCamera();
         } else if (
           this.state.isVideoInputSupported &&
           this.props.isOnInitially
         ) {
-          this.handleOpenVideoInput()
+          console.log("render 3");
+          this.handleOpenVideoInput();
         }
       }
-    )
+    );
   }
 
-  componentDidUpdate (prevProps, prevState) {
+  componentDidUpdate(prevProps, prevState) {
     if (
       this.replayVideo &&
       this.state.isReplayingVideo &&
       !prevState.isReplayingVideo
     ) {
-      this.tryToUnmuteReplayVideo()
+      this.tryToUnmuteReplayVideo();
     }
   }
 
-  componentWillUnmount () {
-    this.turnOffCamera()
+  componentWillUnmount() {
+    this.turnOffCamera();
   }
 
   turnOnCamera = () => {
     if (this.props.onTurnOnCamera) {
-      this.props.onTurnOnCamera()
+      this.props.onTurnOnCamera();
     }
 
     this.setState({
       isConnecting: true,
       isReplayingVideo: false,
       thereWasAnError: false,
-      error: null
-    })
+      error: null,
+    });
 
     const fallbackContraints = {
       audio: true,
-      video: true
-    }
+      video: true,
+    };
 
     navigator.mediaDevices
       .getUserMedia(this.props.constraints)
-      .catch(err => {
+      .catch((err) => {
         // there's a bug in chrome in some windows computers where using `ideal` in the constraints throws a NotReadableError
         if (
-          err.name === 'NotReadableError' ||
-          err.name === 'OverconstrainedError'
+          err.name === "NotReadableError" ||
+          err.name === "OverconstrainedError"
         ) {
           console.warn(
-            `Got ${
-              err.name
-            }, trying getUserMedia again with fallback constraints`
-          )
-          return navigator.mediaDevices.getUserMedia(fallbackContraints)
+            `Got ${err.name}, trying getUserMedia again with fallback constraints`
+          );
+          return navigator.mediaDevices.getUserMedia(fallbackContraints);
         }
-        throw err
+        throw err;
       })
       .then(this.handleSuccess)
-      .catch(this.handleError)
-  }
+      .catch(this.handleError);
+  };
 
   turnOffCamera = () => {
     if (this.props.onTurnOffCamera) {
-      this.props.onTurnOffCamera()
+      this.props.onTurnOffCamera();
     }
 
-    this.stream && this.stream.getTracks().forEach(stream => stream.stop())
+    this.stream && this.stream.getTracks().forEach((stream) => stream.stop());
     this.setState({
-      isCameraOn: false
-    })
-    clearInterval(this.inactivityTimer)
-  }
+      isCameraOn: false,
+    });
+    clearInterval(this.inactivityTimer);
+  };
 
-  handleSuccess = stream => {
-    this.stream = stream
+  handleSuccess = (stream) => {
+    this.stream = stream;
     this.setState({
       isCameraOn: true,
-      stream: stream
-    })
+      stream: stream,
+    });
     if (this.props.onCameraOn) {
-      this.props.onCameraOn()
+      this.props.onCameraOn();
     }
 
     if (window.URL) {
-      this.cameraVideo.srcObject = stream
+      this.cameraVideo.srcObject = stream;
     } else {
-      this.cameraVideo.src = stream
+      this.cameraVideo.src = stream;
     }
 
     // there is probably a better way
@@ -255,201 +261,208 @@ export default class VideoRecorder extends Component {
       this.setState(
         {
           isConnecting: false,
-          streamIsReady: true
+          streamIsReady: true,
         },
         () => {
           if (!this.props.takePicture) {
-            this.handleStartRecording()
+            this.handleStartRecording();
+          } else {
+            this.setState({
+              isScreenCapture: true,
+            });
           }
         }
-      )
-    }, 200)
-  }
+      );
+    }, 200);
+  };
 
-  handleError = err => {
-    const { onError } = this.props
+  handleError = (err) => {
+    const { onError } = this.props;
 
-    console.error('Captured error', err)
+    console.error("Captured error", err);
 
-    clearTimeout(this.timeLimitTimeout)
+    clearTimeout(this.timeLimitTimeout);
 
     if (onError) {
-      onError(err)
+      onError(err);
     }
 
     this.setState({
       isConnecting: this.state.isConnecting && false,
       isRecording: false,
       thereWasAnError: true,
-      error: err
-    })
+      error: err,
+    });
 
     if (this.state.isCameraOn) {
-      this.turnOffCamera()
+      this.turnOffCamera();
     }
-  }
+  };
 
-  handleDataIssue = event => {
-    const error = new ReactVideoRecorderDataIssueError(event)
-    console.error(error.message, event)
-    this.handleError(error)
-    return false
-  }
+  handleDataIssue = (event) => {
+    const error = new ReactVideoRecorderDataIssueError(event);
+    console.error(error.message, event);
+    this.handleError(error);
+    return false;
+  };
 
   getMimeType = () => {
     if (this.props.mimeType) {
-      return this.props.mimeType
+      return this.props.mimeType;
     }
 
     const mimeType = window.MediaRecorder.isTypeSupported
       ? MIME_TYPES.find(window.MediaRecorder.isTypeSupported)
-      : 'video/webm'
+      : "video/webm";
 
-    return mimeType || ''
-  }
+    return mimeType || "";
+  };
 
-  isDataHealthOK = event => {
-    if (!event.data) return this.handleDataIssue(event)
+  isDataHealthOK = (event) => {
+    if (!event.data) return this.handleDataIssue(event);
 
-    const { chunkSize } = this.props
+    const { chunkSize } = this.props;
 
-    const dataCheckInterval = 2000 / chunkSize
+    const dataCheckInterval = 2000 / chunkSize;
 
     // in some browsers (FF/S), data only shows up
     // after a certain amount of time ~everyt 2 seconds
-    const blobCount = this.recordedBlobs.length
+    const blobCount = this.recordedBlobs.length;
     if (blobCount > dataCheckInterval && blobCount % dataCheckInterval === 0) {
       const blob = new window.Blob(this.recordedBlobs, {
-        type: this.getMimeType()
-      })
-      if (blob.size <= 0) return this.handleDataIssue(event)
+        type: this.getMimeType(),
+      });
+      if (blob.size <= 0) return this.handleDataIssue(event);
     }
 
-    return true
-  }
+    return true;
+  };
 
   tryToUnmuteReplayVideo = () => {
-    const video = this.replayVideo
-    video.muted = false
+    const video = this.replayVideo;
+    video.muted = false;
 
-    const playPromise = video.play()
+    const playPromise = video.play();
     if (!playPromise) {
-      video.muted = true
-      return
+      video.muted = true;
+      return;
     }
 
     playPromise
       .then(() => {
-        this.setState({ isReplayVideoMuted: false })
+        this.setState({ isReplayVideoMuted: false });
         // fixes bug where seeking control during autoplay is not available until the video is almost completely played through
         if (this.props.replayVideoAutoplayAndLoopOff) {
-          video.pause()
-          video.loop = false
+          video.pause();
+          video.loop = false;
         }
       })
-      .catch(err => {
-        console.warn('Could not autoplay replay video', err)
-        video.muted = true
-        return video.play()
+      .catch((err) => {
+        console.warn("Could not autoplay replay video", err);
+        video.muted = true;
+        return video.play();
       })
-      .catch(err => {
-        console.warn('Could play muted replay video after failed autoplay', err)
-      })
-  }
+      .catch((err) => {
+        console.warn(
+          "Could play muted replay video after failed autoplay",
+          err
+        );
+      });
+  };
 
-  handleDataAvailable = event => {
+  handleDataAvailable = (event) => {
     if (this.isDataHealthOK(event)) {
-      this.recordedBlobs.push(event.data)
+      this.recordedBlobs.push(event.data);
     }
-  }
+  };
 
   handleStopRecording = () => {
     if (this.props.onStopRecording) {
-      this.props.onStopRecording()
+      this.props.onStopRecording();
     }
 
     if (!this.mediaRecorder) {
-      this.handleError(new ReactVideoRecorderMediaRecorderUnavailableError())
-      return
+      this.handleError(new ReactVideoRecorderMediaRecorderUnavailableError());
+      return;
     }
 
-    this.mediaRecorder.stop()
-  }
+    this.mediaRecorder.stop();
+  };
 
   handlePauseRecording = () => {
     if (this.props.onPauseRecording) {
-      this.props.onPauseRecording()
+      this.props.onPauseRecording();
     }
 
     if (!this.mediaRecorder) {
-      this.handleError(new ReactVideoRecorderMediaRecorderUnavailableError())
-      return
+      this.handleError(new ReactVideoRecorderMediaRecorderUnavailableError());
+      return;
     }
 
-    this.mediaRecorder.pause()
-  }
+    this.mediaRecorder.pause();
+  };
 
   handleResumeRecording = () => {
     if (this.props.onResumeRecording) {
-      this.props.onResumeRecording()
+      this.props.onResumeRecording();
     }
 
     if (!this.mediaRecorder) {
-      this.handleError(new ReactVideoRecorderMediaRecorderUnavailableError())
-      return
+      this.handleError(new ReactVideoRecorderMediaRecorderUnavailableError());
+      return;
     }
 
-    this.mediaRecorder.resume()
-  }
+    this.mediaRecorder.resume();
+  };
 
   handleStartRecording = () => {
     if (this.props.takePicture) {
-      this.handleScreenshot()
+      this.handleScreenshot();
     } else {
       if (this.props.onStartRecording) {
-        this.props.onStartRecording()
+        this.props.onStartRecording();
       }
 
       this.setState({
         isRecordingDone: false,
         isRunningCountdown: true,
-        isReplayingVideo: false
-      })
+        isReplayingVideo: false,
+      });
 
-      setTimeout(() => this.startRecording(), this.props.countdownTime)
+      setTimeout(() => this.startRecording(), this.props.countdownTime);
     }
-  }
+  };
 
   startRecording = () => {
-    captureThumb(this.cameraVideo).then(thumbnail => {
-      this.thumbnail = thumbnail
+    captureThumb(this.cameraVideo).then((thumbnail) => {
+      this.thumbnail = thumbnail;
 
-      this.recordedBlobs = []
+      this.recordedBlobs = [];
       const options = {
-        mimeType: this.getMimeType()
-      }
+        mimeType: this.getMimeType(),
+      };
 
       try {
         this.setState({
           isRunningCountdown: false,
-          isRecording: true
-        })
-        this.startedAt = new Date().getTime()
-        this.mediaRecorder = new window.MediaRecorder(this.stream, options)
-        this.mediaRecorder.addEventListener('stop', this.handleStop)
-        this.mediaRecorder.addEventListener('error', this.handleError)
+          isRecording: true,
+        });
+        this.startedAt = new Date().getTime();
+        this.mediaRecorder = new window.MediaRecorder(this.stream, options);
+        this.mediaRecorder.addEventListener("stop", this.handleStop);
+        this.mediaRecorder.addEventListener("error", this.handleError);
         this.mediaRecorder.addEventListener(
-          'dataavailable',
+          "dataavailable",
           this.handleDataAvailable
-        )
+        );
 
-        const { timeLimit, chunkSize, dataAvailableTimeout } = this.props
-        this.mediaRecorder.start(chunkSize) // collect 10ms of data
+        const { timeLimit, chunkSize, dataAvailableTimeout } = this.props;
+        this.mediaRecorder.start(chunkSize); // collect 10ms of data
 
         if (timeLimit) {
           this.timeLimitTimeout = setTimeout(() => {
-            this.handleStopRecording()
-          }, timeLimit)
+            this.handleStopRecording();
+          }, timeLimit);
         }
 
         // mediaRecorder.ondataavailable should be called every 10ms,
@@ -461,42 +474,42 @@ export default class VideoRecorder extends Component {
                 new ReactVideoRecorderDataAvailableTimeoutError(
                   dataAvailableTimeout
                 )
-              )
+              );
             }
-          }, dataAvailableTimeout)
+          }, dataAvailableTimeout);
         }
       } catch (err) {
-        console.error("Couldn't create MediaRecorder", err, options)
-        this.handleError(err)
+        console.error("Couldn't create MediaRecorder", err, options);
+        this.handleError(err);
       }
-    })
-  }
+    });
+  };
 
-  handleStop = event => {
-    const endedAt = new Date().getTime()
+  handleStop = (event) => {
+    const endedAt = new Date().getTime();
 
     if (!this.recordedBlobs || this.recordedBlobs.length <= 0) {
-      const error = new ReactVideoRecorderRecordedBlobsUnavailableError(event)
-      console.error(error.message, event)
-      this.handleError(error)
-      return
+      const error = new ReactVideoRecorderRecordedBlobsUnavailableError(event);
+      console.error(error.message, event);
+      this.handleError(error);
+      return;
     }
 
-    clearTimeout(this.timeLimitTimeout)
+    clearTimeout(this.timeLimitTimeout);
 
     const videoBlob =
       this.recordedBlobs.length === 1
         ? this.recordedBlobs[0]
         : new window.Blob(this.recordedBlobs, {
-          type: this.getMimeType()
-        })
+            type: this.getMimeType(),
+          });
 
-    const thumbnailBlob = this.thumbnail
-    const startedAt = this.startedAt
-    const duration = endedAt - startedAt
+    const thumbnailBlob = this.thumbnail;
+    const startedAt = this.startedAt;
+    const duration = endedAt - startedAt;
 
     // if this gets executed too soon, the last chunk of data is lost on FF
-    this.mediaRecorder.ondataavailable = null
+    this.mediaRecorder.ondataavailable = null;
 
     this.setState({
       isRecordingDone: true,
@@ -504,35 +517,35 @@ export default class VideoRecorder extends Component {
       isReplayingVideo: true,
       isReplayVideoMuted: true,
       videoBlob,
-      videoUrl: window.URL.createObjectURL(videoBlob)
-    })
+      videoUrl: window.URL.createObjectURL(videoBlob),
+    });
 
-    this.turnOffCamera()
+    this.turnOffCamera();
 
     this.props.onRecordingComplete(
       videoBlob,
       startedAt,
       thumbnailBlob,
       duration
-    )
-  }
+    );
+  };
 
-  handleVideoSelected = e => {
+  handleVideoSelected = (e) => {
     if (this.state.isReplayingVideo) {
       this.setState({
-        isReplayingVideo: false
-      })
+        isReplayingVideo: false,
+      });
     }
 
-    const files = e.target.files || e.dataTransfer.files
-    if (files.length === 0) return
+    const files = e.target.files || e.dataTransfer.files;
+    if (files.length === 0) return;
 
-    const startedAt = new Date().getTime()
-    const video = files[0]
+    const startedAt = new Date().getTime();
+    const video = files[0];
 
-    e.target.value = null
+    e.target.value = null;
 
-    const extension = video.type === 'video/quicktime' ? 'mov' : undefined
+    const extension = video.type === "video/quicktime" ? "mov" : undefined;
 
     getVideoInfo(video)
       .then(({ duration, thumbnail }) => {
@@ -541,8 +554,8 @@ export default class VideoRecorder extends Component {
           isReplayingVideo: true,
           isReplayVideoMuted: true,
           videoBlob: video,
-          videoUrl: window.URL.createObjectURL(video)
-        })
+          videoUrl: window.URL.createObjectURL(video),
+        });
 
         this.props.onRecordingComplete(
           video,
@@ -550,67 +563,67 @@ export default class VideoRecorder extends Component {
           thumbnail,
           duration,
           extension
-        )
+        );
       })
-      .catch(err => {
-        this.handleError(err)
-      })
-  }
+      .catch((err) => {
+        this.handleError(err);
+      });
+  };
 
   handleOpenVideoInput = () => {
     if (this.props.onOpenVideoInput) {
-      this.props.onOpenVideoInput()
+      this.props.onOpenVideoInput();
     }
 
-    this.videoInput.current.value = null
-    this.videoInput.current.click()
-  }
+    this.videoInput.current.value = null;
+    this.videoInput.current.click();
+  };
 
   handleStopReplaying = () => {
     this.setState({
-      isRecordingDone: false
-    })
+      isRecordingDone: false,
+    });
 
     if (this.props.onStopReplaying) {
-      this.props.onStopReplaying()
+      this.props.onStopReplaying();
     }
 
     if (this.props.useVideoInput && this.props.isOnInitially) {
-      return this.handleOpenVideoInput()
+      return this.handleOpenVideoInput();
     }
 
     this.setState({
-      isReplayingVideo: false
-    })
+      isReplayingVideo: false,
+    });
 
     if (this.state.isInlineRecordingSupported && this.props.isOnInitially) {
-      this.turnOnCamera()
+      this.turnOnCamera();
     } else if (this.state.isVideoInputSupported && this.props.isOnInitially) {
-      this.handleOpenVideoInput()
+      this.handleOpenVideoInput();
     }
-  }
+  };
 
   handleReplayVideoClick = () => {
     if (this.replayVideo.paused && !this.props.showReplayControls) {
-      this.replayVideo.play()
+      this.replayVideo.play();
     }
 
     // fixes bug where seeking control during autoplay is not available until the video is almost completely played through
     if (!this.props.replayVideoAutoplayAndLoopOff) {
       this.setState({
-        isReplayVideoMuted: !this.state.isReplayVideoMuted
-      })
+        isReplayVideoMuted: !this.state.isReplayVideoMuted,
+      });
     }
-  }
+  };
 
   // fixes bug where seeking control is not available until the video is almost completely played through
   handleDurationChange = () => {
     if (this.props.showReplayControls) {
-      this.replayVideo.currentTime = 1000000
+      this.replayVideo.currentTime = 1000000;
     }
-  }
+  };
 
-  renderCameraView () {
+  renderCameraView() {
     const {
       locales,
       showReplayControls,
@@ -620,8 +633,8 @@ export default class VideoRecorder extends Component {
       renderUnsupportedView,
       renderErrorView,
       renderLoadingView,
-      useVideoInput
-    } = this.props
+      useVideoInput,
+    } = this.props;
 
     const {
       isVideoInputSupported,
@@ -630,30 +643,30 @@ export default class VideoRecorder extends Component {
       thereWasAnError,
       isCameraOn,
       isConnecting,
-      isReplayVideoMuted
-    } = this.state
+      isReplayVideoMuted,
+    } = this.state;
 
     const shouldUseVideoInput =
-      useVideoInput || (!isInlineRecordingSupported && isVideoInputSupported)
+      useVideoInput || (!isInlineRecordingSupported && isVideoInputSupported);
 
     const videoInput = shouldUseVideoInput ? (
       <input
         ref={this.videoInput}
-        key='videoInput'
-        type='file'
-        accept='video/*'
-        capture={useVideoInput ? undefined : 'user'}
-        style={{ display: 'none' }}
+        key="videoInput"
+        type="file"
+        accept="video/*"
+        capture={useVideoInput ? undefined : "user"}
+        style={{ display: "none" }}
         onChange={this.handleVideoSelected}
       />
-    ) : null
+    ) : null;
 
     if (isReplayingVideo) {
       return (
-        <div className='camera-view' key='replay'>
+        <div className="camera-view" key="replay">
           <video
-            ref={el => (this.replayVideo = el)}
-            className='video'
+            ref={(el) => (this.replayVideo = el)}
+            className="video"
             src={this.state.videoUrl}
             loop
             muted={isReplayVideoMuted}
@@ -663,174 +676,180 @@ export default class VideoRecorder extends Component {
             onClick={this.handleReplayVideoClick}
             onDurationChange={this.handleDurationChange}
             disablePictureInPicture
-            controlsList='nodownload'
+            controlsList="nodownload"
           />
           {videoInput}
         </div>
-      )
+      );
     }
 
     if (shouldUseVideoInput) {
-      return renderVideoInputView({ videoInput })
+      return renderVideoInputView({ videoInput });
     }
 
     if (!isInlineRecordingSupported) {
       return renderUnsupportedView({
         locales,
-        onClick: this.handleVideoPlayerClose
-      })
+        onClick: this.handleVideoPlayerClose,
+      });
     }
 
     if (thereWasAnError) {
-      return renderErrorView({ locales, onClick: this.handleVideoPlayerClose })
+      return renderErrorView({ locales, onClick: this.handleVideoPlayerClose });
     }
 
     if (isCameraOn) {
       return (
-        <div className='camera-view' key='camera'>
+        <div className="camera-view" key="camera">
           <video
-            className={this.props.isFlipped ? 'video flipped' : 'video'}
-            ref={el => (this.cameraVideo = el)}
+            className={this.props.isFlipped ? "video flipped" : "video"}
+            ref={(el) => (this.cameraVideo = el)}
             autoPlay
             muted
             disablePictureInPicture
-            controlsList='nodownload'
+            controlsList="nodownload"
           />
         </div>
-      )
+      );
     }
 
     if (isConnecting) {
-      return renderLoadingView(locales)
+      return renderLoadingView({ locales });
     }
 
-    return renderDisconnectedView()
+    return renderDisconnectedView();
   }
 
   handleVideoPlayerClose = () => {
     if (this.props.onVideoPlayerClose) {
-      this.props.onVideoPlayerClose()
+      this.props.onVideoPlayerClose();
     }
-    this.turnOffCamera()
-  }
+    this.turnOffCamera();
+  };
 
   handleVideoPlayerDone = () => {
     if (this.props.onVideoPlayerDone) {
-      this.props.onVideoPlayerDone()
+      this.props.onVideoPlayerDone();
     }
-  }
+  };
 
-  blobConverter = capturedData => {
-    const BASE64_MARKER = ';base64,'
-    const parts = capturedData.split(BASE64_MARKER)
-    const contentType = parts[0].split(':')[1]
-    const raw = window.atob(parts[1])
-    const rawLength = raw.length
-    const uInt8Array = new Uint8Array(rawLength)
+  blobConverter = (capturedData) => {
+    const BASE64_MARKER = ";base64,";
+    const parts = capturedData.split(BASE64_MARKER);
+    const contentType = parts[0].split(":")[1];
+    const raw = window.atob(parts[1]);
+    const rawLength = raw.length;
+    const uInt8Array = new Uint8Array(rawLength);
     for (let i = 0; i < rawLength; ++i) {
-      uInt8Array[i] = raw.charCodeAt(i)
+      uInt8Array[i] = raw.charCodeAt(i);
     }
-    return new Blob([uInt8Array], { type: contentType })
-  }
+    return new Blob([uInt8Array], { type: contentType });
+  };
 
   handleScreenshot = () => {
-    const { state, props } = this
-    const { takePicture } = props
-
-    if (!state.streamIsReady) {
-      this.props.onGetScreenshot(null)
+    const { state, props } = this;
+    const { takePicture } = props;
+    if (!state.streamIsReady && this.props.onGetScreenshot) {
+      this.props.onGetScreenshot(null);
     }
 
-    const canvas = this.getCanvas()
+    const canvas = this.getCanvas();
+    this.setState({
+      capturedData:
+        canvas &&
+        canvas.toDataURL(
+          takePicture.screenshotFormat,
+          takePicture.screenshotQuality
+        ),
+    });
     const blob = this.blobConverter(
       canvas &&
         canvas.toDataURL(
           takePicture.screenshotFormat,
           takePicture.screenshotQuality
         )
-    )
-    var saveBlob = (function () {
-      var a = document.createElement('a')
-      document.body.appendChild(a)
-      a.style = 'display: none'
-      return function (blob, fileName) {
-        var url = window.URL.createObjectURL(blob)
-        a.href = url
-        a.download = fileName
-        a.click()
-        window.URL.revokeObjectURL(url)
-      }
-    })()
-
-    saveBlob(blob, 'avinash.jpeg')
-    this.props.onGetScreenshot(blob)
-  }
+    );
+    if (this.props.onGetScreenshot) {
+      this.setState({
+        isPictureCapture: true,
+      });
+      this.props.onGetScreenshot(blob);
+    }
+  };
 
   getCanvas = () => {
-    const { state, props } = this
-    const { takePicture } = props
+    const { state, props } = this;
+    const { takePicture } = props;
 
     if (!this.cameraVideo) {
-      return null
+      return null;
     }
 
-    if (!state.streamIsReady || !this.cameraVideo.videoHeight) return null
+    if (!state.streamIsReady || !this.cameraVideo.videoHeight) return null;
 
     if (!this.ctx) {
-      let canvasWidth = this.cameraVideo.videoWidth
-      let canvasHeight = this.cameraVideo.videoHeight
+      let canvasWidth = this.cameraVideo.videoWidth;
+      let canvasHeight = this.cameraVideo.videoHeight;
       if (!takePicture.forceScreenshotSourceSize) {
-        const aspectRatio = canvasWidth / canvasHeight
+        const aspectRatio = canvasWidth / canvasHeight;
 
         canvasWidth =
-          takePicture.minScreenshotWidth || this.cameraVideo.clientWidth
-        canvasHeight = canvasWidth / aspectRatio
+          takePicture.minScreenshotWidth || this.cameraVideo.clientWidth;
+        canvasHeight = canvasWidth / aspectRatio;
 
         if (
           takePicture.minScreenshotHeight &&
           canvasHeight < takePicture.minScreenshotHeight
         ) {
-          canvasHeight = takePicture.minScreenshotHeight
-          canvasWidth = canvasHeight * aspectRatio
+          canvasHeight = takePicture.minScreenshotHeight;
+          canvasWidth = canvasHeight * aspectRatio;
         }
       }
 
-      this.canvas = document.createElement('canvas')
-      this.canvas.width = takePicture.width || canvasWidth
-      this.canvas.height = takePicture.height || canvasHeight
-      this.ctx = this.canvas.getContext('2d')
+      this.canvas = document.createElement("canvas");
+      this.canvas.width = takePicture.width || canvasWidth;
+      this.canvas.height = takePicture.height || canvasHeight;
+      this.ctx = this.canvas.getContext("2d");
     }
 
-    const { ctx, canvas } = this
+    const { ctx, canvas } = this;
 
     if (ctx && canvas) {
       // mirror the screenshot
       if (takePicture.mirrored) {
-        ctx.translate(canvas.width, 0)
-        ctx.scale(-1, 1)
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
       }
 
-      ctx.imageSmoothingEnabled = takePicture.imageSmoothing
-      ctx.drawImage(this.cameraVideo, 0, 0, canvas.width, canvas.height)
+      ctx.imageSmoothingEnabled = takePicture.imageSmoothing;
+      ctx.drawImage(this.cameraVideo, 0, 0, canvas.width, canvas.height);
       ctx.drawImage(
         this.cameraVideo,
         0,
         0,
         takePicture.width || canvas.width,
         takePicture.height || canvas.height
-      )
+      );
 
       // invert mirroring
       if (takePicture.mirrored) {
-        ctx.scale(-1, 1)
-        ctx.translate(-canvas.width, 0)
+        ctx.scale(-1, 1);
+        ctx.translate(-canvas.width, 0);
       }
     }
 
-    return canvas
-  }
+    return canvas;
+  };
 
-  render () {
+  imagePreview = () => {
+    return (
+      <div className="d-flex justify-content-center">
+        <img src={this.state.capturedData} alt="images" />
+      </div>
+    );
+  };
+
+  render() {
     const {
       isRecordingDone,
       isVideoInputSupported,
@@ -842,9 +861,10 @@ export default class VideoRecorder extends Component {
       isConnecting,
       isRunningCountdown,
       isReplayingVideo,
-      isReplayVideoMuted
-    } = this.state
-    console.log('isRecordingDone', isRecordingDone)
+      isReplayVideoMuted,
+      isScreenCapture,
+      isPictureCapture,
+    } = this.state;
     const {
       takePicture,
       isFullScreen,
@@ -854,51 +874,61 @@ export default class VideoRecorder extends Component {
       showReplayControls,
       replayVideoAutoplayAndLoopOff,
       renderActions,
-      useVideoInput
-    } = this.props
+      useVideoInput,
+    } = this.props;
     const showAction =
-      streamIsReady && isCameraOn && isRecording && !useVideoInput
-    const isRecordingDoneButton = isRecordingDone
-    const isVideoCapture = isRecordingDoneButton || showAction
+      streamIsReady &&
+      isCameraOn &&
+      isRecording &&
+      !useVideoInput &&
+      isFullScreen;
+    const isRecordingDoneButton = isRecordingDone && isFullScreen;
+    const isVideoCapture =
+      isRecordingDoneButton ||
+      showAction ||
+      (isScreenCapture && isPictureCapture);
     return (
-      <div className={`video-wrapper ${isFullScreen ? 'full-screen' : ''}`}>
+      <div className={`video-wrapper ${isFullScreen ? "full-screen" : ""}`}>
         {isVideoCapture && (
           <VideoCaptureAction
-            isRecording={isRecordingDoneButton}
+            isRecording={isRecordingDoneButton || isScreenCapture}
             onVideoPlayerClose={this.handleVideoPlayerClose}
             onVideoPlayerDone={this.handleVideoPlayerDone}
           />
         )}
-        {this.renderCameraView()}
-        {renderActions({
-          takePicture,
-          locales,
-          isVideoInputSupported,
-          isInlineRecordingSupported,
-          thereWasAnError,
-          isRecording,
-          isCameraOn,
-          streamIsReady,
-          isConnecting,
-          isRunningCountdown,
-          isReplayingVideo,
-          isReplayVideoMuted,
-          countdownTime,
-          timeLimit,
-          showReplayControls,
-          replayVideoAutoplayAndLoopOff,
-          useVideoInput,
+        {isPictureCapture ? this.imagePreview() : this.renderCameraView()}
+        {!isPictureCapture
+          ? renderActions({
+              isRecordingDoneButton,
+              takePicture,
+              locales,
+              isVideoInputSupported,
+              isInlineRecordingSupported,
+              thereWasAnError,
+              isRecording,
+              isCameraOn,
+              streamIsReady,
+              isConnecting,
+              isRunningCountdown,
+              isReplayingVideo,
+              isReplayVideoMuted,
+              countdownTime,
+              timeLimit,
+              showReplayControls,
+              replayVideoAutoplayAndLoopOff,
+              useVideoInput,
 
-          onTurnOnCamera: this.turnOnCamera,
-          onTurnOffCamera: this.turnOffCamera,
-          onOpenVideoInput: this.handleOpenVideoInput,
-          onStartRecording: this.handleStartRecording,
-          onStopRecording: this.handleStopRecording,
-          onPauseRecording: this.handlePauseRecording,
-          onResumeRecording: this.handleResumeRecording,
-          onStopReplaying: this.handleStopReplaying
-        })}
+              onTurnOnCamera: this.turnOnCamera,
+              onTurnOffCamera: this.turnOffCamera,
+              onOpenVideoInput: this.handleOpenVideoInput,
+              onStartRecording: this.handleStartRecording,
+              onStopRecording: this.handleStopRecording,
+              onPauseRecording: this.handlePauseRecording,
+              onResumeRecording: this.handleResumeRecording,
+              onStopReplaying: this.handleStopReplaying,
+            })
+          : null}
       </div>
-    )
+    );
   }
 }
