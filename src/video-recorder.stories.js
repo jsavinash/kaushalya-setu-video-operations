@@ -4,7 +4,7 @@ import { action } from '@storybook/addon-actions'
 import { withKnobs, text, number } from '@storybook/addon-knobs'
 
 import VideoRecorder from './video-recorder'
-
+// snap a pic
 const locales = {
   recordFailLabel:
     'ओह तस्वीर! आपका ब्राउज़र आपके वीडियो को रिकॉर्ड करने में विफल रहा.',
@@ -15,6 +15,7 @@ const locales = {
   whenReadyLabel: 'जब रेडी हो',
   retryLabel: 'पुन: प्रयास करें',
   addFileLabel: 'फाइल जोडें',
+  capture: 'तस्वीर खींचो',
   recordButton: 'विडियो रेकार्ड करो',
   browserUncapableLabel: 'यह ब्राउज़र वीडियो रिकॉर्ड करने में असमर्थ है'
 }
@@ -50,7 +51,9 @@ const actionLoggers = {
   onRecordingComplete: handleRecordingComplete,
   onOpenVideoInput: action('onOpenVideoInput'),
   onStopReplaying: action('onStopReplaying'),
-  onError: action('onError')
+  onGetScreenshot: action('onGetScreenshot'),
+  onVideoPlayerClose: action('onVideoPlayerClose'),
+  onVideoPlayerDone: action('onVideoPlayerDone')
 }
 
 const stories = storiesOf('VideoRecorder', module)
@@ -71,6 +74,16 @@ stories.addParameters({
 
 stories.add('with default config', () => (
   <VideoRecorder
+    takePicture={{
+      clickPicture: true,
+      screenshotFormat: 'image/jpeg',
+      screenshotQuality: 0.92,
+      forceScreenshotSourceSize: false,
+      mirrored: false,
+      imageSmoothing: true,
+      width: 400,
+      height: 300
+    }}
     showCloseButton
     isFullScreen={false}
     locales={locales}

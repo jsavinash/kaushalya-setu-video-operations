@@ -7,6 +7,7 @@ import ErrorView from './defaults/error-view'
 import DisconnectedView from './defaults/disconnected-view'
 import LoadingView from './defaults/loading-view'
 import renderActions from './defaults/render-actions'
+import VideoCaptureAction from './defaults/video-action'
 import getVideoInfo, { captureThumb } from './get-video-info'
 import {
   ReactVideoRecorderDataIssueError,
@@ -14,7 +15,6 @@ import {
   ReactVideoRecorderDataAvailableTimeoutError,
   ReactVideoRecorderMediaRecorderUnavailableError
 } from './custom-errors'
-import closeIcon from './svg/close.svg'
 
 const MIME_TYPES = [
   'video/webm;codecs="vp8,opus"',
@@ -22,6 +22,8 @@ const MIME_TYPES = [
   'video/webm;codecs=vp9',
   'video/webm'
 ]
+
+const PICTURE_TYPES = ['image/webp', 'image/png', 'image/jpeg']
 
 const CONSTRAINTS = {
   audio: true,
@@ -50,6 +52,19 @@ export default class VideoRecorder extends Component {
     showReplayControls: PropTypes.bool,
     /** Use this to turn off autoplay and looping of the replay video. It is recommended to also showReplayControls in order to play */
     replayVideoAutoplayAndLoopOff: PropTypes.bool,
+    /** Use this for picture config */
+    takePicture: PropTypes.shape({
+      clickPicture: PropTypes.bool,
+      screenshotFormat: PropTypes.oneOf(PICTURE_TYPES),
+      screenshotQuality: PropTypes.number,
+      forceScreenshotSourceSize: PropTypes.bool,
+      minScreenshotWidth: PropTypes.number,
+      minScreenshotHeight: PropTypes.number,
+      mirrored: PropTypes.bool,
+      imageSmoothing: PropTypes.bool,
+      width: PropTypes.number,
+      height: PropTypes.number
+    }),
     /** Use this if you want to customize the constraints passed to getUserMedia() */
     constraints: PropTypes.shape({
       audio: PropTypes.any,
@@ -66,6 +81,7 @@ export default class VideoRecorder extends Component {
     renderErrorView: PropTypes.func,
     renderActions: PropTypes.func,
 
+    onGetScreenshot: PropTypes.func,
     onCameraOn: PropTypes.func,
     onTurnOnCamera: PropTypes.func,
     onTurnOffCamera: PropTypes.func,
@@ -76,19 +92,21 @@ export default class VideoRecorder extends Component {
     onRecordingComplete: PropTypes.func,
     onOpenVideoInput: PropTypes.func,
     onStopReplaying: PropTypes.func,
-    onVideoManagerClose: PropTypes.func,
+    onVideoPlayerClose: PropTypes.func,
+    onVideoPlayerDone: PropTypes.func,
     onError: PropTypes.func
   }
 
   static defaultProps = {
+    takePicture: null,
     showCloseButton: false,
     isFullScreen: false,
     locales: {},
-    renderUnsupportedView: props => <UnsupportedView locales={props} />,
-    renderErrorView: props => <ErrorView locales={props} />,
+    renderUnsupportedView: props => <UnsupportedView {...props} />,
+    renderErrorView: props => <ErrorView {...props} />,
     renderVideoInputView: ({ videoInput }) => <>{videoInput}</>,
     renderDisconnectedView: () => <DisconnectedView />,
-    renderLoadingView: props => <LoadingView locales={props} />,
+    renderLoadingView: props => <LoadingView {...props} />,
     renderActions,
     isFlipped: true,
     countdownTime: 3000,
@@ -112,7 +130,8 @@ export default class VideoRecorder extends Component {
     streamIsReady: false,
     isInlineRecordingSupported: null,
     isVideoInputSupported: null,
-    stream: undefined
+    stream: undefined,
+    isRecordingDone: false
   }
 
   componentDidMount () {
@@ -239,7 +258,9 @@ export default class VideoRecorder extends Component {
           streamIsReady: true
         },
         () => {
-          this.handleStartRecording()
+          if (!this.props.takePicture) {
+            this.handleStartRecording()
+          }
         }
       )
     }, 200)
@@ -382,16 +403,21 @@ export default class VideoRecorder extends Component {
   }
 
   handleStartRecording = () => {
-    if (this.props.onStartRecording) {
-      this.props.onStartRecording()
+    if (this.props.takePicture) {
+      this.handleScreenshot()
+    } else {
+      if (this.props.onStartRecording) {
+        this.props.onStartRecording()
+      }
+
+      this.setState({
+        isRecordingDone: false,
+        isRunningCountdown: true,
+        isReplayingVideo: false
+      })
+
+      setTimeout(() => this.startRecording(), this.props.countdownTime)
     }
-
-    this.setState({
-      isRunningCountdown: true,
-      isReplayingVideo: false
-    })
-
-    setTimeout(() => this.startRecording(), this.props.countdownTime)
   }
 
   startRecording = () => {
@@ -473,6 +499,7 @@ export default class VideoRecorder extends Component {
     this.mediaRecorder.ondataavailable = null
 
     this.setState({
+      isRecordingDone: true,
       isRecording: false,
       isReplayingVideo: true,
       isReplayVideoMuted: true,
@@ -540,6 +567,10 @@ export default class VideoRecorder extends Component {
   }
 
   handleStopReplaying = () => {
+    this.setState({
+      isRecordingDone: false
+    })
+
     if (this.props.onStopReplaying) {
       this.props.onStopReplaying()
     }
@@ -644,11 +675,14 @@ export default class VideoRecorder extends Component {
     }
 
     if (!isInlineRecordingSupported) {
-      return renderUnsupportedView(locales)
+      return renderUnsupportedView({
+        locales,
+        onClick: this.handleVideoPlayerClose
+      })
     }
 
     if (thereWasAnError) {
-      return renderErrorView(locales)
+      return renderErrorView({ locales, onClick: this.handleVideoPlayerClose })
     }
 
     if (isCameraOn) {
@@ -673,15 +707,132 @@ export default class VideoRecorder extends Component {
     return renderDisconnectedView()
   }
 
-  handleCloseEvent = () => {
-    if (this.props.onVideoManagerClose) {
-      this.props.onVideoManagerClose()
+  handleVideoPlayerClose = () => {
+    if (this.props.onVideoPlayerClose) {
+      this.props.onVideoPlayerClose()
     }
     this.turnOffCamera()
   }
 
+  handleVideoPlayerDone = () => {
+    if (this.props.onVideoPlayerDone) {
+      this.props.onVideoPlayerDone()
+    }
+  }
+
+  blobConverter = capturedData => {
+    const BASE64_MARKER = ';base64,'
+    const parts = capturedData.split(BASE64_MARKER)
+    const contentType = parts[0].split(':')[1]
+    const raw = window.atob(parts[1])
+    const rawLength = raw.length
+    const uInt8Array = new Uint8Array(rawLength)
+    for (let i = 0; i < rawLength; ++i) {
+      uInt8Array[i] = raw.charCodeAt(i)
+    }
+    return new Blob([uInt8Array], { type: contentType })
+  }
+
+  handleScreenshot = () => {
+    const { state, props } = this
+    const { takePicture } = props
+
+    if (!state.streamIsReady) {
+      this.props.onGetScreenshot(null)
+    }
+
+    const canvas = this.getCanvas()
+    const blob = this.blobConverter(
+      canvas &&
+        canvas.toDataURL(
+          takePicture.screenshotFormat,
+          takePicture.screenshotQuality
+        )
+    )
+    var saveBlob = (function () {
+      var a = document.createElement('a')
+      document.body.appendChild(a)
+      a.style = 'display: none'
+      return function (blob, fileName) {
+        var url = window.URL.createObjectURL(blob)
+        a.href = url
+        a.download = fileName
+        a.click()
+        window.URL.revokeObjectURL(url)
+      }
+    })()
+
+    saveBlob(blob, 'avinash.jpeg')
+    this.props.onGetScreenshot(blob)
+  }
+
+  getCanvas = () => {
+    const { state, props } = this
+    const { takePicture } = props
+
+    if (!this.cameraVideo) {
+      return null
+    }
+
+    if (!state.streamIsReady || !this.cameraVideo.videoHeight) return null
+
+    if (!this.ctx) {
+      let canvasWidth = this.cameraVideo.videoWidth
+      let canvasHeight = this.cameraVideo.videoHeight
+      if (!takePicture.forceScreenshotSourceSize) {
+        const aspectRatio = canvasWidth / canvasHeight
+
+        canvasWidth =
+          takePicture.minScreenshotWidth || this.cameraVideo.clientWidth
+        canvasHeight = canvasWidth / aspectRatio
+
+        if (
+          takePicture.minScreenshotHeight &&
+          canvasHeight < takePicture.minScreenshotHeight
+        ) {
+          canvasHeight = takePicture.minScreenshotHeight
+          canvasWidth = canvasHeight * aspectRatio
+        }
+      }
+
+      this.canvas = document.createElement('canvas')
+      this.canvas.width = takePicture.width || canvasWidth
+      this.canvas.height = takePicture.height || canvasHeight
+      this.ctx = this.canvas.getContext('2d')
+    }
+
+    const { ctx, canvas } = this
+
+    if (ctx && canvas) {
+      // mirror the screenshot
+      if (takePicture.mirrored) {
+        ctx.translate(canvas.width, 0)
+        ctx.scale(-1, 1)
+      }
+
+      ctx.imageSmoothingEnabled = takePicture.imageSmoothing
+      ctx.drawImage(this.cameraVideo, 0, 0, canvas.width, canvas.height)
+      ctx.drawImage(
+        this.cameraVideo,
+        0,
+        0,
+        takePicture.width || canvas.width,
+        takePicture.height || canvas.height
+      )
+
+      // invert mirroring
+      if (takePicture.mirrored) {
+        ctx.scale(-1, 1)
+        ctx.translate(-canvas.width, 0)
+      }
+    }
+
+    return canvas
+  }
+
   render () {
     const {
+      isRecordingDone,
       isVideoInputSupported,
       isInlineRecordingSupported,
       thereWasAnError,
@@ -693,9 +844,9 @@ export default class VideoRecorder extends Component {
       isReplayingVideo,
       isReplayVideoMuted
     } = this.state
-
+    console.log('isRecordingDone', isRecordingDone)
     const {
-      showCloseButton,
+      takePicture,
       isFullScreen,
       locales,
       countdownTime,
@@ -705,24 +856,22 @@ export default class VideoRecorder extends Component {
       renderActions,
       useVideoInput
     } = this.props
+    const showAction =
+      streamIsReady && isCameraOn && isRecording && !useVideoInput
+    const isRecordingDoneButton = isRecordingDone
+    const isVideoCapture = isRecordingDoneButton || showAction
     return (
       <div className={`video-wrapper ${isFullScreen ? 'full-screen' : ''}`}>
-        {showCloseButton && (
-          <div className='close'>
-            <img
-              src={closeIcon}
-              data-qa='close'
-              alt='retry'
-              style={{
-                height: '40px',
-                width: '40px'
-              }}
-              onClick={this.handleCloseEvent}
-            />
-          </div>
+        {isVideoCapture && (
+          <VideoCaptureAction
+            isRecording={isRecordingDoneButton}
+            onVideoPlayerClose={this.handleVideoPlayerClose}
+            onVideoPlayerDone={this.handleVideoPlayerDone}
+          />
         )}
         {this.renderCameraView()}
         {renderActions({
+          takePicture,
           locales,
           isVideoInputSupported,
           isInlineRecordingSupported,
