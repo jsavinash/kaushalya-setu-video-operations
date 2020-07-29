@@ -54,7 +54,6 @@ export default class VideoRecorder extends Component {
     replayVideoAutoplayAndLoopOff: PropTypes.bool,
     /** Use this for picture config */
     takePicture: PropTypes.shape({
-      clickPicture: PropTypes.bool,
       screenshotFormat: PropTypes.oneOf(PICTURE_TYPES),
       screenshotQuality: PropTypes.number,
       forceScreenshotSourceSize: PropTypes.bool,
@@ -158,18 +157,15 @@ export default class VideoRecorder extends Component {
       () => {
         if (this.props.useVideoInput && this.props.isOnInitially) {
           this.handleOpenVideoInput();
-          console.log("render 1");
         } else if (
           this.state.isInlineRecordingSupported &&
           this.props.isOnInitially
         ) {
-          console.log("render 2");
           this.turnOnCamera();
         } else if (
           this.state.isVideoInputSupported &&
           this.props.isOnInitially
         ) {
-          console.log("render 3");
           this.handleOpenVideoInput();
         }
       }
@@ -870,28 +866,29 @@ export default class VideoRecorder extends Component {
       renderActions,
       useVideoInput,
     } = this.props;
-    const showAction =
-      streamIsReady &&
-      isCameraOn &&
-      isRecording &&
-      !useVideoInput &&
-      isFullScreen;
+    const showAction = isCameraOn && !useVideoInput && isFullScreen;
+    const showVideoRecord = (showAction || isRecordingDone) && !isScreenCapture;
     const isRecordingDoneButton = isRecordingDone && isFullScreen;
-    const isVideoCapture =
-      isRecordingDoneButton ||
-      showAction ||
-      (isScreenCapture && isPictureCapture);
-
     return (
       <div className={`video-wrapper ${isFullScreen ? "full-screen" : ""}`}>
-        {isVideoCapture && (
+        {isScreenCapture && (
           <VideoCaptureAction
-            isRecording={isRecordingDoneButton || isScreenCapture}
+            isRecording={isPictureCapture}
             isScreenCapture={isScreenCapture}
             onVideoPlayerClose={this.handleVideoPlayerClose}
             onVideoPlayerDone={this.handleVideoPlayerDone}
           />
         )}
+
+        {showVideoRecord && (
+          <VideoCaptureAction
+            isRecording={isRecordingDoneButton}
+            isScreenCapture={true}
+            onVideoPlayerClose={this.handleVideoPlayerClose}
+            onVideoPlayerDone={this.handleVideoPlayerDone}
+          />
+        )}
+
         {isPictureCapture ? this.imagePreview() : this.renderCameraView()}
         {!isPictureCapture
           ? renderActions({
