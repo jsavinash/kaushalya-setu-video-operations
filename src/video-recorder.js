@@ -522,7 +522,8 @@ export default class VideoRecorder extends Component {
       videoBlob,
       startedAt,
       thumbnailBlob,
-      duration
+      duration,
+      'webm'
     );
   };
 
@@ -867,14 +868,14 @@ export default class VideoRecorder extends Component {
       useVideoInput,
     } = this.props;
     const showAction = isCameraOn && !useVideoInput && isFullScreen;
-    const showVideoRecord = (showAction || isRecordingDone) && !isScreenCapture;
+    const showVideoRecord = (showAction || isRecordingDone) && !isScreenCapture && isFullScreen;
     const isRecordingDoneButton = isRecordingDone && isFullScreen;
     return (
       <div className={`video-wrapper ${isFullScreen ? "full-screen" : ""}`}>
         {isScreenCapture && (
           <VideoCaptureAction
             isRecording={isPictureCapture}
-            isScreenCapture={isScreenCapture}
+            isScreenCapture={true}
             onVideoPlayerClose={this.handleVideoPlayerClose}
             onVideoPlayerDone={this.handleVideoPlayerDone}
           />
@@ -883,7 +884,7 @@ export default class VideoRecorder extends Component {
         {showVideoRecord && (
           <VideoCaptureAction
             isRecording={isRecordingDoneButton}
-            isScreenCapture={true}
+            isScreenCapture={false}
             onVideoPlayerClose={this.handleVideoPlayerClose}
             onVideoPlayerDone={this.handleVideoPlayerDone}
           />
