@@ -32,6 +32,7 @@ const CONSTRAINTS = {
 
 export default class VideoRecorder extends Component {
   static propTypes = {
+    videoUrl: PropTypes.string,
     /** full screen flag */
     showCloseButton: PropTypes.bool,
     /** full screen flag */
@@ -97,6 +98,7 @@ export default class VideoRecorder extends Component {
   };
 
   static defaultProps = {
+    videoUrl: "",
     takePicture: null,
     showCloseButton: false,
     isFullScreen: false,
@@ -507,23 +509,26 @@ export default class VideoRecorder extends Component {
     // if this gets executed too soon, the last chunk of data is lost on FF
     this.mediaRecorder.ondataavailable = null;
 
-    this.setState({
-      isRecordingDone: true,
-      isRecording: false,
-      isReplayingVideo: true,
-      isReplayVideoMuted: true,
-      videoBlob,
-      videoUrl: window.URL.createObjectURL(videoBlob),
-    });
+    this.setState(
+      {
+        isRecordingDone: true,
+        isRecording: false,
+        isReplayingVideo: true,
+        isReplayVideoMuted: true,
+        videoBlob,
+        videoUrl: window.URL.createObjectURL(videoBlob),
+      },
+      () => {
+        this.turnOffCamera();
 
-    this.turnOffCamera();
-
-    this.props.onRecordingComplete(
-      videoBlob,
-      startedAt,
-      thumbnailBlob,
-      duration,
-      'webm'
+        this.props.onRecordingComplete(
+          videoBlob,
+          startedAt,
+          thumbnailBlob,
+          duration,
+          "webm"
+        );
+      }
     );
   };
 
@@ -542,7 +547,13 @@ export default class VideoRecorder extends Component {
 
     e.target.value = null;
 
-    const extension = video.type === "video/quicktime" ? "mov" : undefined;
+    let extension = video.type;
+
+    let fileType = video.type ? video.type : undefined;
+    if (fileType && fileType.includes("/")) {
+      fileType = fileType.split("/");
+      extension = fileType[fileType.length - 1];
+    }
 
     getVideoInfo(video)
       .then(({ duration, thumbnail }) => {
@@ -574,6 +585,11 @@ export default class VideoRecorder extends Component {
 
     this.videoInput.current.value = null;
     this.videoInput.current.click();
+  };
+
+  handleClearVideoInput = () => {
+    this.setState({ isReplayingVideo: false });
+    this.videoInput.current.value = null;
   };
 
   handleStopReplaying = () => {
@@ -664,7 +680,9 @@ export default class VideoRecorder extends Component {
           <video
             ref={(el) => (this.replayVideo = el)}
             className="video"
-            src={this.state.videoUrl}
+            src={
+              this.props.videoUrl ? this.props.videoUrl : this.state.videoUrl
+            }
             loop
             muted={isReplayVideoMuted}
             playsInline
@@ -868,7 +886,8 @@ export default class VideoRecorder extends Component {
       useVideoInput,
     } = this.props;
     const showAction = isCameraOn && !useVideoInput && isFullScreen;
-    const showVideoRecord = (showAction || isRecordingDone) && !isScreenCapture && isFullScreen;
+    const showVideoRecord =
+      (showAction || isRecordingDone) && !isScreenCapture && isFullScreen;
     const isRecordingDoneButton = isRecordingDone && isFullScreen;
     return (
       <div className={`video-wrapper ${isFullScreen ? "full-screen" : ""}`}>
