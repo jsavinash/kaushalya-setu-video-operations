@@ -1,0 +1,42 @@
+language: node_js
+
+cache:
+  directories:
+    - ~/.npm
+
+notifications:
+  email: false
+
+node_js:
+  - "10"
+  - "8"
+
+addons:
+  apt:
+    packages:
+      # This is required to run new chrome on old trusty
+      - libnss3
+
+script:
+  - commitlint-travis
+  - yarn lint
+  - yarn test:unit
+  - yarn test:browser
+
+after_success:
+  - yarn travis-deploy-once "yarn semantic-release"
+
+before_deploy:
+  - yarn build-storybook
+
+deploy:
+  provider: surge
+  project: ./storybook-static/
+  domain: react-video-recorder.surge.sh
+  skip_cleanup: true
+  on:
+    branch: master
+
+branches:
+  except:
+    - /^v\d+\.\d+\.\d+$/
