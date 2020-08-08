@@ -215,5 +215,6 @@
   height: 100%;
   object-fit: cover;
   cursor: pointer; }
-  .video .flipped {
-    transform: translate(-50%, -50%) scaleX(-1); }
+
+.flipped {
+  transform: translate(-50%, -50%) scaleX(-1); }

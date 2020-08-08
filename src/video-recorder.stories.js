@@ -74,7 +74,7 @@ stories.addParameters({
 
 stories.add('with default config', () => (
   <VideoRecorder
-  isOnInitially
+    isOnInitially
     takePicture={{
       clickPicture: true,
       screenshotFormat: 'image/jpeg',
@@ -86,7 +86,8 @@ stories.add('with default config', () => (
       height: 300
     }}
     showCloseButton
-    isFullScreen={true}
+    isFullScreen
+    isFlipped
     locales={locales}
     mimeType={text('mimeType')}
     countdownTime={number('countdownTime', 3 * 1000)}

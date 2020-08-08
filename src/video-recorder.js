@@ -751,6 +751,7 @@ export default class VideoRecorder extends Component {
     for (let i = 0; i < rawLength; ++i) {
       uInt8Array[i] = raw.charCodeAt(i)
     }
+    /* eslint-disable no-undef */
     return new Blob([uInt8Array], { type: contentType })
   }
 
