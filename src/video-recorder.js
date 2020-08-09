@@ -188,6 +188,9 @@ export default class VideoRecorder extends Component {
 
   componentWillUnmount () {
     this.turnOffCamera()
+    if (this.drawTimer) {
+      clearTimeout(this.drawTimer)
+    }
   }
 
   turnOnCamera = () => {
@@ -261,13 +264,13 @@ export default class VideoRecorder extends Component {
   }
 
   draw = (video, width, height) => {
-    if (this.refs.canvasEl) {
-      const ctx = this.refs.canvasEl.getContext('2d')
+    if (this.videoCanvas) {
+      const ctx = this.videoCanvas.getContext('2d')
       ctx.save()
       ctx.scale(-1, 1)
       ctx.drawImage(video, 0, 0, width * -1, height)
       ctx.restore()
-      setTimeout(this.draw, 10, video, width, height)
+      this.drawTimer = setTimeout(this.draw, 10, video, width, height)
     }
   }
 
@@ -311,7 +314,9 @@ export default class VideoRecorder extends Component {
     const options = {
       mimeType: this.getMimeType()
     }
-    this.cStream = this.refs.canvasEl.captureStream(25)
+    console.log('demo------------------------')
+    this.videoCanvas = document.getElementById('canvasElement')
+    this.cStream = this.videoCanvas.captureStream(25)
     this.cmediaRecorder = new window.MediaRecorder(this.cStream, options)
     this.cmediaRecorder.ondataavailable = this.handleDataAvailable
     this.cmediaRecorder.stop = this.handleStop
@@ -387,6 +392,9 @@ export default class VideoRecorder extends Component {
     console.error('Captured error', err)
 
     clearTimeout(this.timeLimitTimeout)
+    if (this.drawTimer) {
+      clearTimeout(this.drawTimer)
+    }
 
     if (onError) {
       onError(err)
@@ -481,6 +489,7 @@ export default class VideoRecorder extends Component {
       this.handleError(new ReactVideoRecorderMediaRecorderUnavailableError())
       return
     }
+
     this.cmediaRecorder.stop()
   }
 
@@ -559,6 +568,9 @@ export default class VideoRecorder extends Component {
     }
 
     clearTimeout(this.timeLimitTimeout)
+    if (this.drawTimer) {
+      clearTimeout(this.drawTimer)
+    }
     const videoBlob =
       this.crecordedBlobs.length === 1
         ? this.crecordedBlobs[0]
@@ -778,6 +790,7 @@ export default class VideoRecorder extends Component {
       return (
         <div className='camera-view' key='camera'>
           <canvas
+            id='canvasElement'
             ref='canvasEl'
             className='canvasClass'
             height={window.innerHeight}
