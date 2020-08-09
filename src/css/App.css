@@ -48,6 +48,7 @@
     background: #fb6d42; }
 
 .countdown {
+  z-index: 2;
   position: absolute;
   top: 0;
   bottom: 0;
@@ -69,6 +70,7 @@
   text-align: center; }
 
 .timer {
+  z-index: 2;
   position: absolute;
   top: 50px;
   right: 50px;
@@ -89,6 +91,7 @@
   font-family: Arial; }
 
 .action-wrapper {
+  z-index: 2;
   position: absolute;
   bottom: 0;
   left: 0;
@@ -125,7 +128,7 @@
   z-index: 1; }
 
 .cancel-button-wrapper {
-  z-index: 1;
+  z-index: 2;
   position: absolute;
   bottom: 4%;
   left: 10%;
@@ -141,7 +144,7 @@
   margin-left: 3%; }
 
 .save-button-wrapper {
-  z-index: 1;
+  z-index: 2;
   position: absolute;
   bottom: 4%;
   right: 10%;
@@ -194,6 +197,23 @@
   .video-wrapper * {
     box-sizing: inherit; }
 
+.canvasWrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  transition: height 1s ease-in-out;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  min-height: 300px;
+  background-color: #000;
+  color: white;
+  box-sizing: border-box; }
+  .canvasWrapper * {
+    box-sizing: inherit; }
+
 .full-screen {
   position: fixed;
   top: 0;
@@ -216,5 +236,15 @@
   object-fit: cover;
   cursor: pointer; }
 
-.flipped {
-  transform: translate(-50%, -50%) scaleX(-1); }
+.canvasClass {
+  z-index: 1;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  min-height: 100%;
+  min-width: 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  cursor: pointer; }

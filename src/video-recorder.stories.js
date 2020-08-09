@@ -80,7 +80,7 @@ stories.add('with default config', () => (
       screenshotFormat: 'image/jpeg',
       screenshotQuality: 0.92,
       forceScreenshotSourceSize: false,
-      mirrored: false,
+      mirrored: true,
       imageSmoothing: true,
       width: 400,
       height: 300

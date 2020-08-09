@@ -97,6 +97,10 @@ export default class VideoRecorder extends Component {
     onError: PropTypes.func
   }
 
+  cStream = null
+  crecordedBlobs = []
+  cmediaRecorder = null
+
   static defaultProps = {
     videoUrl: '',
     takePicture: null,
@@ -110,7 +114,7 @@ export default class VideoRecorder extends Component {
     renderLoadingView: props => <LoadingView {...props} />,
     renderActions,
     isFlipped: true,
-    countdownTime: 3000,
+    countdownTime: 0,
     constraints: CONSTRAINTS,
     chunkSize: 250,
     dataAvailableTimeout: 500
@@ -236,6 +240,107 @@ export default class VideoRecorder extends Component {
     clearInterval(this.inactivityTimer)
   }
 
+  canvasIsDataHealthOK = event => {
+    if (!event.data) return this.handleDataIssue(event)
+
+    const { chunkSize } = this.props
+
+    const dataCheckInterval = 2000 / chunkSize
+
+    // in some browsers (FF/S), data only shows up
+    // after a certain amount of time ~everyt 2 seconds
+    const blobCount = this.crecordedBlobs.length
+    if (blobCount > dataCheckInterval && blobCount % dataCheckInterval === 0) {
+      const blob = new window.Blob(this.crecordedBlobs, {
+        type: this.getMimeType()
+      })
+      if (blob.size <= 0) return this.handleDataIssue(event)
+    }
+
+    return true
+  }
+
+  draw = (video, width, height) => {
+    if (this.refs.canvasEl) {
+      const ctx = this.refs.canvasEl.getContext('2d')
+      ctx.save()
+      ctx.scale(-1, 1)
+      ctx.drawImage(video, 0, 0, width * -1, height)
+      ctx.restore()
+      setTimeout(this.draw, 10, video, width, height)
+    }
+  }
+
+  handleCanvasVideoData = event => {
+    if (this.canvasIsDataHealthOK(event)) {
+      this.crecordedBlobs.push(event.data)
+    }
+  }
+
+  saveBlob = (function () {
+    var a = document.createElement('a')
+    document.body.appendChild(a)
+    a.style = 'display: none'
+    return function (blob, fileName) {
+      var url = window.URL.createObjectURL(blob)
+      a.href = url
+      a.download = fileName
+      a.click()
+      window.URL.revokeObjectURL(url)
+    }
+  })()
+
+  handleCanvasVideoStop = () => {
+    const videoBlob =
+      this.crecordedBlobs.length === 1
+        ? this.crecordedBlobs[0]
+        : new window.Blob(this.crecordedBlobs, {
+          type: this.getMimeType()
+        })
+    this.cmediaRecorder.ondataavailable = null
+    this.saveBlob(videoBlob, 'new.webm')
+  }
+
+  handleDataAvailable = event => {
+    if (this.isDataHealthOK(event)) {
+      this.crecordedBlobs.push(event.data)
+    }
+  }
+
+  handleCanvasVideoPlay = () => {
+    const options = {
+      mimeType: this.getMimeType()
+    }
+    this.cStream = this.refs.canvasEl.captureStream(25)
+    this.cmediaRecorder = new window.MediaRecorder(this.cStream, options)
+    this.cmediaRecorder.ondataavailable = this.handleDataAvailable
+    this.cmediaRecorder.stop = this.handleStop
+    this.cmediaRecorder.error = this.handleError
+    const { timeLimit, chunkSize, dataAvailableTimeout } = this.props
+    this.cmediaRecorder.start(chunkSize) // collect 10ms of data
+
+    if (timeLimit) {
+      this.timeLimitTimeout = setTimeout(() => {
+        this.handleStopRecording()
+      }, timeLimit)
+    }
+
+    // mediaRecorder.ondataavailable should be called every 10ms,
+    // as that's what we're passing to mediaRecorder.start() above
+    if (Number.isInteger(dataAvailableTimeout)) {
+      setTimeout(() => {
+        if (this.crecordedBlobs.length === 0) {
+          this.handleError(
+            new ReactVideoRecorderDataAvailableTimeoutError(
+              dataAvailableTimeout
+            )
+          )
+        }
+      }, dataAvailableTimeout)
+    }
+    this.draw(this.cameraVideo, window.innerWidth, window.innerHeight)
+  }
+
   handleSuccess = stream => {
     this.stream = stream
     this.setState({
@@ -251,6 +356,8 @@ export default class VideoRecorder extends Component {
     } else {
       this.cameraVideo.src = stream
     }
+
+    this.cameraVideo.addEventListener('play', this.handleCanvasVideoPlay, false)
 
     // there is probably a better way
     // but this makes sure the start recording button
@@ -325,9 +432,9 @@ export default class VideoRecorder extends Component {
 
     // in some browsers (FF/S), data only shows up
     // after a certain amount of time ~everyt 2 seconds
-    const blobCount = this.recordedBlobs.length
+    const blobCount = this.crecordedBlobs.length
     if (blobCount > dataCheckInterval && blobCount % dataCheckInterval === 0) {
-      const blob = new window.Blob(this.recordedBlobs, {
+      const blob = new window.Blob(this.crecordedBlobs, {
         type: this.getMimeType()
       })
       if (blob.size <= 0) return this.handleDataIssue(event)
@@ -365,23 +472,16 @@ export default class VideoRecorder extends Component {
       })
   }
 
-  handleDataAvailable = event => {
-    if (this.isDataHealthOK(event)) {
-      this.recordedBlobs.push(event.data)
-    }
-  }
-
   handleStopRecording = () => {
     if (this.props.onStopRecording) {
       this.props.onStopRecording()
     }
 
-    if (!this.mediaRecorder) {
+    if (!this.cmediaRecorder) {
       this.handleError(new ReactVideoRecorderMediaRecorderUnavailableError())
       return
     }
-
-    this.mediaRecorder.stop()
+    this.cmediaRecorder.stop()
   }
 
   handlePauseRecording = () => {
@@ -389,12 +489,12 @@ export default class VideoRecorder extends Component {
       this.props.onPauseRecording()
     }
 
-    if (!this.mediaRecorder) {
+    if (!this.cmediaRecorder) {
       this.handleError(new ReactVideoRecorderMediaRecorderUnavailableError())
       return
     }
 
-    this.mediaRecorder.pause()
+    this.cmediaRecorder.pause()
   }
 
   handleResumeRecording = () => {
@@ -402,12 +502,12 @@ export default class VideoRecorder extends Component {
       this.props.onResumeRecording()
     }
 
-    if (!this.mediaRecorder) {
+    if (!this.cmediaRecorder) {
       this.handleError(new ReactVideoRecorderMediaRecorderUnavailableError())
       return
     }
 
-    this.mediaRecorder.resume()
+    this.cmediaRecorder.resume()
   }
 
   handleStartRecording = () => {
@@ -431,8 +531,6 @@ export default class VideoRecorder extends Component {
   startRecording = () => {
     captureThumb(this.cameraVideo).then(thumbnail => {
       this.thumbnail = thumbnail
-
-      this.recordedBlobs = []
       const options = {
         mimeType: this.getMimeType()
       }
@@ -443,36 +541,6 @@ export default class VideoRecorder extends Component {
           isRecording: true
         })
         this.startedAt = new Date().getTime()
-        this.mediaRecorder = new window.MediaRecorder(this.stream, options)
-        this.mediaRecorder.addEventListener('stop', this.handleStop)
-        this.mediaRecorder.addEventListener('error', this.handleError)
-        this.mediaRecorder.addEventListener(
-          'dataavailable',
-          this.handleDataAvailable
-        )
-
-        const { timeLimit, chunkSize, dataAvailableTimeout } = this.props
-        this.mediaRecorder.start(chunkSize) // collect 10ms of data
-
-        if (timeLimit) {
-          this.timeLimitTimeout = setTimeout(() => {
-            this.handleStopRecording()
-          }, timeLimit)
-        }
-
-        // mediaRecorder.ondataavailable should be called every 10ms,
-        // as that's what we're passing to mediaRecorder.start() above
-        if (Number.isInteger(dataAvailableTimeout)) {
-          setTimeout(() => {
-            if (this.recordedBlobs.length === 0) {
-              this.handleError(
-                new ReactVideoRecorderDataAvailableTimeoutError(
-                  dataAvailableTimeout
-                )
-              )
-            }
-          }, dataAvailableTimeout)
-        }
       } catch (err) {
         console.error("Couldn't create MediaRecorder", err, options)
         this.handleError(err)
@@ -483,7 +551,7 @@ export default class VideoRecorder extends Component {
   handleStop = event => {
     const endedAt = new Date().getTime()
 
-    if (!this.recordedBlobs || this.recordedBlobs.length <= 0) {
+    if (!this.crecordedBlobs || this.crecordedBlobs.length <= 0) {
       const error = new ReactVideoRecorderRecordedBlobsUnavailableError(event)
       console.error(error.message, event)
       this.handleError(error)
@@ -491,11 +559,10 @@ export default class VideoRecorder extends Component {
     }
 
     clearTimeout(this.timeLimitTimeout)
-
     const videoBlob =
-      this.recordedBlobs.length === 1
-        ? this.recordedBlobs[0]
-        : new window.Blob(this.recordedBlobs, {
+      this.crecordedBlobs.length === 1
+        ? this.crecordedBlobs[0]
+        : new window.Blob(this.crecordedBlobs, {
           type: this.getMimeType()
         })
 
@@ -504,7 +571,7 @@ export default class VideoRecorder extends Component {
     const duration = endedAt - startedAt
 
     // if this gets executed too soon, the last chunk of data is lost on FF
-    this.mediaRecorder.ondataavailable = null
+    this.cmediaRecorder.ondataavailable = null
 
     this.setState({
       isRecordingDone: true,
@@ -586,6 +653,7 @@ export default class VideoRecorder extends Component {
   }
 
   handleStopReplaying = () => {
+    this.crecordedBlobs = []
     this.setState({
       isRecordingDone: false
     })
@@ -709,6 +777,12 @@ export default class VideoRecorder extends Component {
     if (isCameraOn) {
       return (
         <div className='camera-view' key='camera'>
+          <canvas
+            ref='canvasEl'
+            className='canvasClass'
+            height={window.innerHeight}
+            width={window.innerWidth}
+          />
           <video
             className={this.props.isFlipped ? 'video flipped' : 'video'}
             ref={el => (this.cameraVideo = el)}
