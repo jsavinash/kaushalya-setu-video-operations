@@ -114,7 +114,7 @@ export default class VideoRecorder extends Component {
     renderLoadingView: props => <LoadingView {...props} />,
     renderActions,
     isFlipped: true,
-    countdownTime: 0,
+    countdownTime: 3000,
     constraints: CONSTRAINTS,
     chunkSize: 250,
     dataAvailableTimeout: 500
@@ -265,11 +265,9 @@ export default class VideoRecorder extends Component {
 
   draw = (video, width, height) => {
     if (this.videoCanvas) {
-      const ctx = this.videoCanvas.getContext('2d')
-      ctx.save()
+      const ctx = this.videoCanvas.getContext('2d', { alpha: false })
       ctx.scale(-1, 1)
       ctx.drawImage(video, 0, 0, width * -1, height)
-      ctx.restore()
       this.drawTimer = setTimeout(this.draw, 10, video, width, height)
     }
   }
@@ -314,7 +312,6 @@ export default class VideoRecorder extends Component {
     const options = {
       mimeType: this.getMimeType()
     }
-    console.log('demo------------------------')
     this.videoCanvas = document.getElementById('canvasElement')
     this.cStream = this.videoCanvas.captureStream(25)
     this.cmediaRecorder = new window.MediaRecorder(this.cStream, options)
@@ -550,6 +547,7 @@ export default class VideoRecorder extends Component {
           isRecording: true
         })
         this.startedAt = new Date().getTime()
+        this.cameraVideo.play()
       } catch (err) {
         console.error("Couldn't create MediaRecorder", err, options)
         this.handleError(err)
@@ -791,15 +789,14 @@ export default class VideoRecorder extends Component {
         <div className='camera-view' key='camera'>
           <canvas
             id='canvasElement'
-            ref='canvasEl'
             className='canvasClass'
             height={window.innerHeight}
             width={window.innerWidth}
           />
           <video
-            className={this.props.isFlipped ? 'video flipped' : 'video'}
+            className='video hidden-video'
             ref={el => (this.cameraVideo = el)}
-            autoPlay
+            autoPlay={false}
             muted
             disablePictureInPicture
             controlsList='nodownload'

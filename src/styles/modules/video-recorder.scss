@@ -60,6 +60,9 @@
   object-fit: cover;
   cursor: pointer;
 }
+.hidden-video{
+  visibility: hidden;
+}
 
 .canvasClass {
   z-index: 1;
